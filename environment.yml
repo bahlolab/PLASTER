@@ -20,6 +20,7 @@ dependencies:
     - r-pheatmap
     - r-cowplot
     - r-ggforce
+    - r-fpc
     - bioconductor-rsamtools
     - bioconductor-biostrings
     - bioconductor-decipher
