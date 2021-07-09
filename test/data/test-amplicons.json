@@ -1,0 +1,18 @@
+{
+  "CYP2D6": {
+    "chrom": "chr22",
+    "start": 42125398,
+    "end": 42131503,
+    "strand": "-",
+    "fwd_primer": "TGTGAATATTGTCTTTGTGTGGGTG",
+    "rvs_primer": "CAGGACTCAGGTAATCATATGCTCA"
+  },
+  "CYP2D7": {
+    "chrom": "chr22",
+    "start": 42137550,
+    "end": 42145176,
+    "strand": "-",
+    "fwd_primer": "TGTGAATATTGTCTTTGTGTGGGTG",
+    "rvs_primer": "CAGGACTCAGGTAATCATATGCTCA"
+  }
+}
