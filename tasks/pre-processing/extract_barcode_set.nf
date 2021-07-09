@@ -1,7 +1,7 @@
 
 process extract_barcode_set {
-    label 'xs'
-    publishDir "progress/extract_barcode_set", mode: params.intermediate_pub_mode
+    label 'XS'
+    publishDir "intermediates/extract_barcode_set", mode: "$params.intermediate_pub_mode"
 
     input:
         path manifest
@@ -20,7 +20,7 @@ process extract_barcode_set {
         cat bc_order.txt | xargs --replace samtools faidx $barcodes_fa {} > bc_set.fa
 
         BS=\$(grep '>' bc_set.fa | wc -l)
-        SB=\$(tail -n+2 $manifest | cut -f2 | sort | uniq | wc -l)
+        SB=\$(cat bc_order.txt | wc -l)
 
         if [[ \${BS} -ne \${SB} ]]; then
             exit 1
