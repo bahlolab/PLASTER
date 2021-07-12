@@ -8,12 +8,12 @@ workflow merge_lima_smry {
             map { [
                 (it.find { it[0] == 'CCS' })[2],
                 (it.find { it[0] == 'SR' })[2] ] } |
-            task
+            merge_lima_smry_task
     emit:
-        smry = task.out.smry
+        smry = merge_lima_smry_task.out.smry
 }
 
-process task {
+process merge_lima_smry_task {
     label 'XS'
     publishDir "intermediates/merge_lima_smry", mode: "$params.intermediate_pub_mode"
 

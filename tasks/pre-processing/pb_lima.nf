@@ -1,5 +1,19 @@
 
-process pb_lima {
+workflow pb_lima {
+    take:
+        data
+        bc_fasta
+    main:
+        pb_lima_task(data, bc_fasta)
+    emit:
+        smry = pb_lima_task.out.smry
+//        // rt, is_bc, nr, bam
+        bams = pb_lima_task.out.bc.map { it + [true] } |
+            mix (pb_lima_task.out.not_bc.map { it + [false] }) |
+            map { [it[0], it[3], it[2].toFile().text.trim() as int, it[1] ] }
+}
+
+process pb_lima_task {
     label 'L'
     publishDir "intermediates/pb_lima", mode: "$params.intermediate_pub_mode"
     tag { rt }

@@ -24,3 +24,32 @@ void checkManiAmps(Path manifest_tsv, Path amplicons_json) {
             .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
     }
 }
+
+
+List refFastaFileMap(String filename) {
+    def suffs = ['dict', 'fai', 'ccs.mmi', 'subread.mmi']
+    def inclusive=true
+    def fn = new File(filename).toPath().toAbsolutePath()
+    def basename = fn.fileName.toString()
+    def pattern =  /.*\.fa(sta)?(\.gz)?$/
+    if (! basename ==~  pattern ){
+        errorExit("Error: reference fasta file name must match pattern \"$pattern\".")
+    }
+    def base = basename.replaceAll(/\.fa(sta)?(\.gz)?$/, '') + '.*\\.'
+    def patterns = suffs.collectEntries { [(it): base + it + '$' ] }
+    def matches = patterns.collectEntries {
+        [ (it.key) : (new FileNameByRegexFinder().getFileNames(fn.parent.toString(), it.value))[0] ]
+    }
+    def failed = matches.findAll{ it.value == null }.keySet()
+    if (failed) {
+        errorExit("Error: File(s) with suffix \"${failed.join('", "')}\" not found for file \"$filename\"\n")
+    }
+    matches = matches.collectEntries { [ (it.key) : (new File(it.value).toPath() ) ] }
+    if (inclusive){
+        matches.put('fa', fn)
+        def gzi = (new FileNameByRegexFinder().getFileNames(fn.parent.toString(), base + 'gzi' + '$'))[0]
+        if (gzi) { matches.put('gzi', (new File(gzi).toPath()) )}
+    }
+    return [ matches.collectEntries { [(it.key) : it.value.fileName.toString()] },
+             matches.collect { it.value } ]
+}
