@@ -9,6 +9,7 @@ println "\n------- $wf_name -------"
 // default params
 params.intermediate_pub_mode = 'symlink'
 params.output_pub_mode = 'copy'
+params.run_id = "plaster-run"
 params.ccs_min_len = 250
 params.ccs_max_len = 25000
 params.ccs_min_acc = 0.99
@@ -18,6 +19,7 @@ params.ccs_n_parallel = 10
 include { path; checkManiAmps } from './functions'
 include { extract_barcode_set } from './tasks/pre-processing/extract_barcode_set'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
+include { pb_merge } from './tasks/pre-processing/pb_merge'
 
 // check and load inputs
 subreads_bam = path(params.subreads_bam)
@@ -34,4 +36,10 @@ workflow {
     Channel.from((1..params.ccs_n_parallel) as ArrayList) |
         map { [it, subreads_bam, subreads_pbi ] } |
         pb_ccs
+
+    ccs_bam = params.ccs_n_parallel == 1 ?
+        pb_ccs.out.bams.first() :
+        pb_ccs.out.bams | pb_merge
+
+
 }
