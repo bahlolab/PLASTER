@@ -21,6 +21,7 @@ include { path; checkManiAmps } from './functions'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
 include { pb_merge } from './tasks/pre-processing/pb_merge'
 include { pb_lima } from './tasks/pre-processing/pb_lima'
+include { merge_lima_smry } from './tasks/pre-processing/merge_lima_smry'
 include { extract_barcode_set } from './tasks/pre-processing/extract_barcode_set'
 include { extract_ccs_failed } from './tasks/pre-processing/extract_ccs_failed'
 
@@ -49,5 +50,6 @@ workflow {
         mix(ccs_bam.map { ['CCS', it] })
 
     pb_lima(lima_in, extract_barcode_set.out.fasta)
+    merge_lima_smry(pb_lima.out.smry) | view
 
 }
