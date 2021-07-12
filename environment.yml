@@ -4,8 +4,9 @@ channels:
     - bioconda
     - r
 dependencies:
-    - pbmm2=1.4.0
+    - pbbam=1.6.0
     - pbccs=6.0.0
+    - pbmm2=1.4.0
     - pbsv=2.6.0
     - lima=2.2.0
     - bcftools=1.10.2
