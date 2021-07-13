@@ -9,7 +9,7 @@ process alignment_stats {
         tuple val(rt), val(is_bc), val(nr), path(bam)
 
     output:
-        tuple val(rt), val(is_bc), val(nr), path(stats), emit: stats
+        path stats, emit: stats
 
     script:
         stats = bam.name.replace('.bam', '.stats.tsv.gz')

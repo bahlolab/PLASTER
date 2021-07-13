@@ -28,6 +28,8 @@ include { extract_ccs_failed } from './tasks/pre-processing/extract_ccs_failed'
 include { annotate_samples } from './tasks/pre-processing/annotate_samples'
 include { annotate_amplicons } from './tasks/pre-processing/annotate_amplicons'
 include { alignment_stats } from './tasks/pre-processing/alignment_stats'
+include { split_sample_amplicons } from './tasks/pre-processing/split_sample_amplicons'
+include { index_bam } from './tasks/pre-processing/index_bam'
 
 // check and load inputs
 subreads_bam = path(params.subreads_bam)
@@ -69,7 +71,17 @@ workflow {
         map { it + [amplicons_json, sample_manifest] } |
         annotate_amplicons |
         combine (ref_channel) |
-        pb_mm2_2 |
-        alignment_stats |
+        pb_mm2_2
+
+    pb_mm2_2.out.bams |
+        filter { it[0] == 'CCS' & it[1] } |
+        map { it.drop(2) } |
+        split_sample_amplicons |
+        index_bam |
         view
+
+    pb_mm2_2.out.bams |
+        alignment_stats |
+        toSortedList()
+
 }
