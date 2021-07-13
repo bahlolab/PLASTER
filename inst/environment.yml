@@ -24,6 +24,7 @@ dependencies:
     - r-fpc
     - r-plotly
     - r-jsonlite
+    - r-devtools
     - bioconductor-rsamtools
     - bioconductor-biostrings
     - bioconductor-decipher

@@ -12,7 +12,7 @@ process annotate_amplicons {
         tuple val(rt), val(is_bc), val(nr), path(out), emit: bams
 
     script:
-        out = params.run_id + '.' + rt + '.sm_am_annot.bam'
+        out = "$params.run_id.$rt.${is_bc}.sm_am_annot.bam"
         """
         samtools view -u $bam |
             bam_annotate_amplicons.py - --window 500 --max-dist 2 \\

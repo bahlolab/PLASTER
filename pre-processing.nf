@@ -17,7 +17,7 @@ params.ccs_min_passes = 3
 params.ccs_n_parallel = 10
 
 // import functions and tasks
-include { path; checkManiAmps; refFastaFileMap} from './functions'
+include { path; checkManiAmps; refFastaFileMap; collect_tsv} from './functions'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
 include { pb_merge } from './tasks/pre-processing/pb_merge'
 include { pb_lima } from './tasks/pre-processing/pb_lima'
@@ -30,6 +30,7 @@ include { annotate_amplicons } from './tasks/pre-processing/annotate_amplicons'
 include { alignment_stats } from './tasks/pre-processing/alignment_stats'
 include { split_sample_amplicons } from './tasks/pre-processing/split_sample_amplicons'
 include { index_bam } from './tasks/pre-processing/index_bam'
+include { pre_processing_report } from './tasks/pre-processing/pre_processing_report'
 
 // check and load inputs
 subreads_bam = path(params.subreads_bam)
@@ -40,6 +41,7 @@ amplicons_json = path(params.amplicons_json)
 checkManiAmps(sample_manifest, amplicons_json)
 path(params.ref_fasta)
 ref = refFastaFileMap(params.ref_fasta)
+rmd = file(workflow.projectDir + '/bin/pre-processing-report.Rmd')
 
 // main workflow
 workflow {
@@ -63,7 +65,7 @@ workflow {
     merge_lima_smry(pb_lima.out.smry)
 
     pb_lima.out.bams |
-        combine (ref_channel) |
+        combine(ref_channel) |
         pb_mm2 |
         combine(extract_barcode_set.out.order) |
         map { it + [sample_manifest] } |
@@ -71,17 +73,22 @@ workflow {
         map { it + [amplicons_json, sample_manifest] } |
         annotate_amplicons |
         combine (ref_channel) |
-        pb_mm2_2
-
-    pb_mm2_2.out.bams |
+        pb_mm2_2 |
         filter { it[0] == 'CCS' & it[1] } |
         map { it.drop(2) } |
         split_sample_amplicons |
         index_bam |
-        view
+        map { [params.run_id] + it.dropRight(1) } |
+        map { it.collect { it.toString() }.join('\t') } |
+        collectFile(name: 'sample_amplicon_bam_manifest.tsv', storeDir: './output/', newLine: true,
+            seed: ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file'].join('\t'))
 
     pb_mm2_2.out.bams |
         alignment_stats |
-        toSortedList()
-
+        toSortedList() |
+        map { [it] } |
+        combine(merge_lima_smry.out) |
+        map { [rmd, amplicons_json, sample_manifest] + it } |
+        pre_processing_report |
+        view
 }
