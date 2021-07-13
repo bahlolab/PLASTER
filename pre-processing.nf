@@ -21,11 +21,13 @@ include { path; checkManiAmps; refFastaFileMap} from './functions'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
 include { pb_merge } from './tasks/pre-processing/pb_merge'
 include { pb_lima } from './tasks/pre-processing/pb_lima'
-include { pb_mm2 } from './tasks/pre-processing/pb_mm2'
+include { pb_mm2; pb_mm2 as pb_mm2_2 } from './tasks/pre-processing/pb_mm2'
 include { merge_lima_smry } from './tasks/pre-processing/merge_lima_smry'
 include { extract_barcode_set } from './tasks/pre-processing/extract_barcode_set'
 include { extract_ccs_failed } from './tasks/pre-processing/extract_ccs_failed'
 include { annotate_samples } from './tasks/pre-processing/annotate_samples'
+include { annotate_amplicons } from './tasks/pre-processing/annotate_amplicons'
+include { alignment_stats } from './tasks/pre-processing/alignment_stats'
 
 // check and load inputs
 subreads_bam = path(params.subreads_bam)
@@ -58,9 +60,16 @@ workflow {
     pb_lima(lima_in, extract_barcode_set.out.fasta)
     merge_lima_smry(pb_lima.out.smry)
 
-     pb_mm2(pb_lima.out.bams, ref_channel) |
-         combine(extract_barcode_set.out.order) |
-         map { it + [sample_manifest] } |
-         annotate_samples |
-         view
+    pb_lima.out.bams |
+        combine (ref_channel) |
+        pb_mm2 |
+        combine(extract_barcode_set.out.order) |
+        map { it + [sample_manifest] } |
+        annotate_samples |
+        map { it + [amplicons_json, sample_manifest] } |
+        annotate_amplicons |
+        combine (ref_channel) |
+        pb_mm2_2 |
+        alignment_stats |
+        view
 }

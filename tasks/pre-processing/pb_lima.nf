@@ -4,16 +4,16 @@ workflow pb_lima {
         data
         bc_fasta
     main:
-        pb_lima_task(data, bc_fasta)
+        PBL(data, bc_fasta)
     emit:
-        smry = pb_lima_task.out.smry
+        smry = PBL.out.smry
 //        // rt, is_bc, nr, bam
-        bams = pb_lima_task.out.bc.map { it + [true] } |
-            mix (pb_lima_task.out.not_bc.map { it + [false] }) |
+        bams = PBL.out.bc.map { it + [true] } |
+            mix (PBL.out.not_bc.map { it + [false] }) |
             map { [it[0], it[3], it[2].toFile().text.trim() as int, it[1] ] }
 }
 
-process pb_lima_task {
+process PBL {
     label 'L'
     publishDir "intermediates/pb_lima", mode: "$params.intermediate_pub_mode"
     tag { rt }

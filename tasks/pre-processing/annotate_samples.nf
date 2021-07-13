@@ -4,14 +4,14 @@ workflow annotate_samples {
         data
     main:
         data = data.branch { is_bc: it[1] ;  not_bc: true }
-        data.is_bc | annotate_samples_task
+        data.is_bc | AS
     emit:
-        bams = annotate_samples_task.out.bams |
+        bams = AS.out.bams |
             mix( data.not_bc.map {it.take(4)} )
 }
 
-process annotate_samples_task {
-    label 'M'
+process AS {
+    label 'M_NR'
     publishDir "intermediates/annotate_samples", mode: "$params.intermediate_pub_mode"
     tag { "$rt:$is_bc" }
 

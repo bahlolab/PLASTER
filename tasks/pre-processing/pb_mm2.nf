@@ -1,12 +1,11 @@
 
 process pb_mm2 {
-    label 'XL2'
+    label 'XL2_NR'
     publishDir "intermediates/pb_mm2", mode: "$params.intermediate_pub_mode"
     tag { "$rt:$is_bc" }
 
     input:
-        tuple val(rt), val(is_bc), val(nr), path(bam)
-        tuple val(ref_map), path(ref_files)
+        tuple val(rt), val(is_bc), val(nr), path(bam), val(ref_map), path(ref_files)
 
     output:
         tuple val(rt), val(is_bc), val(nr), file(aln), emit: bams

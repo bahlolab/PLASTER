@@ -20,10 +20,6 @@ class BamWriteThread(Thread):
             self.q.task_done()
 
 
-def bam_filename(sm_bc, prefix, suffix):
-    return '{}.BC-{}.SM-{}.{}'.format(prefix, sm_bc[1], sm_bc[0], suffix)
-
-
 def get_sample_map(manifest, order):
     bc_lines = open(order, 'rt').readlines()
     bc_i_map = {bc.strip(): i for i, bc in enumerate(bc_lines)}
