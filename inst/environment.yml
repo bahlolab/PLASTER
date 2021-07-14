@@ -1,0 +1,35 @@
+name: PLASTER_v0.0
+channels:
+    - conda-forge
+    - bioconda
+    - r
+dependencies:
+    - pbbam=1.6.0
+    - pbccs=6.0.0
+    - pbmm2=1.4.0
+    - pbsv=2.6.0
+    - lima=2.2.0
+    - bcftools=1.10.2
+    - samtools=1.10
+    - pysam=0.16.0.1
+    - gatk4=4.2.0.0
+    - ensembl-vep=104.0
+    - python-levenshtein=0.12.2
+    - r-tidyverse
+    - r-rmarkdown
+    - r-docopt
+    - r-pheatmap
+    - r-cowplot
+    - r-ggforce
+    - r-fpc
+    - r-plotly
+    - r-jsonlite
+    - r-devtools
+    - bioconductor-rsamtools
+    - bioconductor-biostrings
+    - bioconductor-decipher
+    - bioconductor-seqarray
+    - bioconductor-seqvartools
+    - bioconductor-snprelate
+    - bioconductor-genomicranges
+    - bioconductor-shortread
