@@ -13,7 +13,7 @@ workflow pb_merge {
 
 process pb_merge_task {
     label 'M'
-    publishDir "intermediates/pb_merge", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/pb_merge", mode: "$params.intermediate_pub_mode"
 
     input:
         path bams

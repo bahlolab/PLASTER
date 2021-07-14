@@ -12,7 +12,7 @@ workflow annotate_samples {
 
 process AS {
     label 'M_NR'
-    publishDir "intermediates/annotate_samples", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/annotate_samples", mode: "$params.intermediate_pub_mode"
     tag { "$rt:$is_bc" }
 
     input:

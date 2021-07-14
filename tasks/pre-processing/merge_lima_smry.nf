@@ -15,7 +15,7 @@ workflow merge_lima_smry {
 
 process MLS {
     label 'XS'
-    publishDir "intermediates/merge_lima_smry", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/merge_lima_smry", mode: "$params.intermediate_pub_mode"
 
     input:
         tuple path(lima_smry_ccs), path(lima_smry_sr)

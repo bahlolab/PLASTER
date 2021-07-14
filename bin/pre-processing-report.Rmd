@@ -1,0 +1,392 @@
+---
+title: "PLASTER: pre-processing report"
+date: "`r date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+stopifnot(require(tidyverse),
+          require(magrittr),
+          require(plotly),
+          require(cowplot),
+          require(jsonlite))
+```
+
+
+```{r functions}
+setdown <- function(data, title = NULL, max_n = 2) {
+
+  is_union <- function(sets_list, sets){
+    vapply(sets_list, function(sl) { any(sets %in% sl) }, logical(1))
+  }
+  is_intersection <- function(sets_list, sets){
+    vapply(sets_list, function(sl) { all(sets %in% sl) }, logical(1))
+  }
+  is_exc_inters <- function(sets_list, sets){
+    vapply(sets_list, function(sl) { all(sets %in% sl) & all(sl %in% sets) }, logical(1))
+  }
+  get_n_op <- function(smry, fun, sets_) {
+    smry %>% filter(fun(sets, sets_)) %>% pull(n) %>% sum()
+  }
+
+  get_combs <- function(x, choose_min=1, choose_max=min(length(x)-1, max_n)){
+    map(choose_min - 1 + seq_len(choose_max - choose_min + 1), function(m) {
+      combn(x, m=m, simplify = FALSE)
+    }) %>% do.call('c', .)
+  }
+
+  data_smry <-
+    data %>%
+    select_if(is.logical) %>%
+    group_by_all() %>%
+    summarise(n = n()) %>%
+    ungroup() %>%
+    mutate(id = 1:n()) %>%
+    gather(-id, -n, key='set', value='is_in') %>%
+    filter(is_in) %>% select(-is_in) %>%
+    group_by(id, n) %>%
+    summarise(sets = list(set))
+
+
+  comb_counts <- tibble(
+    sets =  c(get_combs(names(data)), list(names(data))),
+    n_sets = c(as.character(lengths(sets)[-length(sets)]), 'all')) %>%
+    rowwise() %>%
+    mutate(union = get_n_op(data_smry, is_union, sets),
+           intersection =  get_n_op(data_smry, is_intersection, sets),
+           `exclusive intersection` = get_n_op(data_smry, is_exc_inters, sets)) %>%
+    arrange(n_sets, -intersection) %>%
+    mutate(union = union - intersection, intersection = intersection - `exclusive intersection`) %>%
+    rowwise() %>%
+    mutate(set_lab = stringr::str_c(unlist(sets), collapse= ';')) %>%
+    ungroup() %>%
+    mutate(set_lab = factor(set_lab, levels=unique(set_lab))) %>%
+    gather(-set_lab, -sets, -n_sets, key='operation', value = 'n') %>%
+    mutate(operation = replace(operation, operation == 'exclusive intersection', 'exclusive\nintersection') %>% 
+             factor(levels = c('union', 'intersection', 'exclusive\nintersection')))
+  
+  sets <- 
+    comb_counts %>% 
+    select(sets, n_sets, set_lab) %>% 
+    unnest() %>% 
+    rename(set = sets) %>%
+    distinct() %>% 
+    mutate(set = factor(set, rev(levels(comb_counts$set_lab))))
+
+
+  top <-
+    ggplot(comb_counts) +
+    geom_hline(aes(yintercept=nrow(data))) +
+    geom_col(aes(x=set_lab, y=n, fill = operation), col='gray25') +
+    scale_fill_manual(values = c('union'=NA, 'intersection'="#68affc", 'exclusive\nintersection'="#266197")) +
+    theme(axis.ticks.x = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(),
+          legend.title = element_blank()) +
+    scale_y_continuous("Count", sec.axis = sec_axis(~ 100 * . / nrow(data), name = 'percent')) +
+    facet_grid(~n_sets, scales = 'free_x', space= 'free_x') +
+    guides()
+  
+  if(!is.null(title)) {
+    top <- top + ggtitle(title)
+  }
+  
+  bot <-
+    ggplot(sets) +
+    geom_line(aes(x=set_lab, y=set, group = set_lab), size = 1, col='black') +
+    geom_point(aes(x=set_lab, y=set), col='black', size = 4) +
+    theme(axis.ticks.x = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank(),
+          strip.background = element_blank(), strip.text = element_blank()) +
+    facet_grid(~n_sets, scales = 'free_x', space= 'free_x')
+    
+  
+  plot_grid(top, bot, ncol = 1, align = 'v', axis = 'lr', rel_heights = c(0.80, 0.20))
+}
+```
+
+
+```{r read_data}
+manifest <- 
+  read_tsv(sample_manifest, col_types = 'ccc') %>% 
+  mutate(amplicons = str_split(amplicons, ';')) %>% 
+  mutate(sample_barcode = str_c(sample, barcode, sep='.'))
+
+amplicon_set <- unlist(manifest$amplicons) %>% unique()
+
+amplicons_tbl <- 
+  fromJSON(amplicons_json) %>% 
+  map2_df(.,  names(.), function(d, n) {
+    as_tibble(d) %>% mutate(amplicon = n)
+  }) %>% 
+  select(amplicon, chrom, start, end) %>% 
+  filter(amplicon %in% amplicon_set) %>% 
+  mutate(len = end - start,
+         left = start - round(0.10 * len),
+         right = end + round(0.10 * len))
+
+amplicon_full_set <- c(amplicon_set, 'off-target', 'unmapped')
+
+lima_stats <- read_tsv(lima_summary, col_types = cols())
+
+amplicon_pal <-
+  c(scales::hue_pal()(length(amplicon_set)), 'gray70', 'gray30') %>%
+  set_names(amplicon_full_set)
+
+amplicon_pal_2 <-
+  c(c(scales::hue_pal(l = 82)(length(amplicon_set))) %>% 
+      set_names(str_c(amplicon_set, '_partial')),
+    c(scales::hue_pal(l = 48)(length(amplicon_set))) %>% 
+      set_names(str_c(amplicon_set, '_complete')),
+    c('off-target'='gray70', 'unmapped'='gray30'))
+
+amplicon_pal_3 <-
+  c(c(scales::hue_pal(l = 90)(length(amplicon_set))) %>% 
+      set_names(str_c(amplicon_set, '_partial_subread')),
+    c(scales::hue_pal(l = 75)(length(amplicon_set))) %>% 
+      set_names(str_c(amplicon_set, '_complete_subread')),
+    c(scales::hue_pal(l = 60)(length(amplicon_set))) %>% 
+      set_names(str_c(amplicon_set, '_partial_CCS')),
+    c(scales::hue_pal(l = 45)(length(amplicon_set))) %>% 
+      set_names(str_c(amplicon_set, '_complete_CCS'))) %>% 
+   c('off-target'='gray70', 'unmapped'='gray30') %>% 
+  rev()
+
+```
+
+**Run ID:** `r run_id`
+
+**amplicon set:** `r str_c(amplicons_tbl$amplicon, collapse=', ')`
+
+```{r sample_manifest}
+read_tsv(sample_manifest, col_types = 'ccc') %>% 
+  DT::datatable(filter = 'top',
+                extensions = 'Buttons',
+                options = list(
+                  dom = 'Bt',
+                  buttons = c('copy', 'csv')),
+                caption = htmltools::tags$caption(
+                  style = 'font-weight: bold; font-size:150% ;',
+                  'Sample Manifest'))
+```
+
+
+```{r read_stats}
+read_stats <-
+  list.files(pattern = '.stats.tsv.gz') %>% 
+  map_df(~ suppressWarnings(
+    read_tsv(., col_types = cols(
+      query_name = col_integer(),
+      query_length = col_integer(),
+      query_alignment_start = col_integer(),
+      query_alignment_end = col_integer(),
+      reference_name = col_character(),
+      reference_length = col_integer(),
+      reference_start = col_integer(),
+      reference_end = col_integer(),
+      match = col_integer(),
+      mismatch = col_integer(),
+      ins = col_integer(),
+      del = col_integer(),
+      SM = col_character(),
+      BC = col_character(),
+      AM = col_character(),
+      OL = col_double(),
+      ID = col_double(),
+      PM = col_double(),
+      PO = col_character(),
+      PP = col_logical(),
+      read_type = col_character())))) %>% 
+  mutate(across(where(is.character), as.factor),
+         PP = replace_na(PP, FALSE)) %>% 
+  rename(sample = SM,
+         barcode = BC,
+         amplicon = AM,
+         overlap = OL,
+         prop_covered = PM,
+         identity = ID,
+         pair_ori = PO,
+         proper_pair = PP) %>% 
+  write_rds('read_stats.rds', compress = 'gz')
+```
+
+```{r plot_zmw_stats, fig.width=8.5, fig.height=4.5}
+read_stats %>% 
+  transmute(qname = query_name, 
+            CCS = read_type == 'CCS', 
+            barcoded = !is.na(barcode), 
+            on_target = !amplicon %in% c('off-target', 'unmapped'),
+            primers_correct = proper_pair) %>% 
+  arrange_all() %>% 
+  group_by(qname, CCS) %>% 
+  summarise(barcoded = any(barcoded),
+            on_target = any(on_target),
+            primers_correct = any(primers_correct)) %>% 
+  ungroup() %>% 
+  select(-qname) %T>% {
+    group_by_all(.) %>% 
+      count() %>% 
+      write_tsv('zmw_status_set_summary.tsv')
+  } %>% 
+  setdown('Polymerase read status set summary', max_n = 2)
+```
+
+```{r count_smry_by_amplicon}
+counts_smry <- 
+  read_stats %>% 
+  transmute(qname = query_name, 
+            amplicon = amplicon,
+            CCS = read_type == 'CCS', 
+            barcoded = !is.na(barcode), 
+            primers_correct = proper_pair) %>% 
+  distinct() %>% 
+  add_count(qname) %>% 
+  split.data.frame(., .$n > 1) %>% 
+  (function(x) {
+    x$`TRUE` %>% 
+      group_by(qname) %>% 
+      summarise(barcoded = any(barcoded),
+                amplicon = {
+                  if (length(setdiff(amplicon, c('off-target', 'unmapped'))) > 0) {
+                    first(sort(setdiff(amplicon, c('off-target', 'unmapped'))))
+                  } else if ('off-target' %in% amplicon) {
+                    'off-target'
+                  } else {
+                    'unmapped'
+                  }
+                },
+                CCS = any(CCS),
+                primers_correct = any(primers_correct)) %>% 
+      bind_rows(select(x$`FALSE`, -n))
+  }) %>% 
+  select(amplicon, barcoded, CCS, primers_correct) %>% 
+  group_by_all() %>% 
+  count() %>% 
+  ungroup() %>% 
+  group_by(amplicon) %>% 
+  complete(barcoded = c(T,F), CCS = c(T,F), primers_correct = c(T,F),
+           fill = list(n=0L)) %>% 
+  arrange_all() %>% 
+  write_tsv('amp_counts_smry.tsv')
+```
+
+
+```{r amp_counts, out.width= 300+100*(length(amplicon_set)), out.height=500}
+
+read_stats %>% 
+  filter(! amplicon %in% c('off-target', 'unmapped')) %>% 
+  transmute(qname = query_name, 
+            amplicon = amplicon,
+            is_ccs = read_type == 'CCS', 
+            primers_correct = proper_pair) %>% 
+  arrange_all() %>% 
+  group_by(qname, amplicon) %>% 
+  summarise(is_ccs = any(is_ccs),
+            primers_correct = any(primers_correct)) %>% 
+  ungroup()  %>% 
+  mutate(state = case_when(is_ccs & primers_correct ~ 'complete_CCS',
+                           is_ccs                   ~ 'partial_CCS',
+                           primers_correct          ~ 'complete_subread',
+                           TRUE                     ~ 'partial_subread'),
+         amplicon_state = str_c(amplicon, state, sep = '_') %>% factor(levels = names(amplicon_pal_3))) %>% 
+  group_by(amplicon, state, amplicon_state) %>% 
+  count() %>% 
+  group_by(amplicon) %>% 
+  mutate(p = n / sum(n)) %>% {
+    ggplot(., aes(text=str_c(str_c('amplicon: ', amplicon),
+                             str_c('state: ', state),
+                             str_c('n: ' , n),
+                             str_c('p: ' , round(p, digits = 3) %>% format(scientific =F)),
+                             sep = '<br>'))) +
+      geom_col(aes(amplicon, n, fill = amplicon_state), col='gray25', size=0.25) +
+      scale_fill_manual(values = amplicon_pal_3) + 
+      ylab('count') +
+      theme(legend.position = 'right') + 
+      ggtitle('Read state counts by amplicon')
+  } %>% ggplotly(tooltip = 'text')
+  
+```
+
+
+```{r plot_read_lengths, fig.width=8, fig.height=4  }
+read_stats %>% 
+  transmute(amplicon = amplicon,
+            is_ccs = read_type == 'CCS', 
+            primers_correct = proper_pair,
+            read_length = query_length) %>% 
+  mutate(ccs_state = 
+           case_when(is_ccs & primers_correct ~ 'complete_CCS',
+                     is_ccs                   ~ 'partial_CCS',
+                     primers_correct          ~ 'complete_subread',
+                     TRUE                     ~ 'partial_subread') %>% 
+           factor(c('partial_subread', 'complete_subread', 'partial_CCS', 'complete_CCS'))) %>% 
+  ggplot(aes(x = amplicon, y=read_length, fill = amplicon)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0)) +
+  scale_fill_manual(values = amplicon_pal) +
+  geom_violin(scale = 'width') +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank()) +
+  facet_grid(.~ccs_state, space = 'free_x', scales = 'free_x') +
+  ylim(0, 15000) +
+  ylab('length') + 
+  ggtitle('Distribution of read lengths')
+```
+
+```{r sm_read_plots, fig.width=10, fig.height=5 }
+
+sm_read_smry <-
+  read_stats %>% 
+  filter(!is.na(barcode),
+         proper_pair,
+         read_type == 'CCS') %>% 
+  transmute(sample_barcode = str_c(sample, '.', barcode),
+            sample = sample,
+            barcode = barcode,
+            amplicon = amplicon) %>% 
+  group_by(sample_barcode, sample, barcode, amplicon) %>% 
+  count() %>% 
+  group_by(sample_barcode) %>% 
+  mutate(p = n / sum(n), tot = sum(n)) %>% 
+  ungroup() %>% 
+  arrange(-tot) %>% 
+  mutate(sample_barcode = as_factor(sample_barcode))
+
+sm_read_smry %>% 
+  group_by(sample, barcode, amplicon) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup() %>% 
+  full_join(manifest %>% unnest(amplicons) %>% select(sample, barcode, amplicon = amplicons),
+            c('sample', 'barcode', 'amplicon')) %>%
+  mutate(n = if_else(is.na(n), 0L, n)) %>% 
+  arrange_all() %>% 
+  write_tsv('sm_bc_ccs_counts.tsv')
+
+sm_read_smry %>% 
+  select(-sample_barcode, -tot) %>% 
+  mutate(p = round(p, 2)) %>% 
+  DT::datatable(
+    filter = 'top',
+    extensions = 'Buttons',
+    options = list(
+      dom = 'Bt',
+      buttons = c('copy', 'csv')),
+    caption = htmltools::tags$caption(
+      style = 'font-weight: bold; font-size:150% ;',
+      'Sample Complete CCS Counts'))
+
+{ sm_read_smry %>% 
+    mutate(sample_barcode =  str_c(sample, '\n', barcode)) %>% 
+    ggplot(., aes(text=str_c(str_c('sample: ', sample),
+                             str_c('barcode: ', barcode),
+                             str_c('amplicon: ', amplicon),
+                             str_c('n: ' , n),
+                             str_c('p: ' , round(p, digits = 3) %>% format(scientific =F)),
+                             sep = '<br>'))) +
+    geom_col(aes(x=sample_barcode, y=n, fill=amplicon), col='gray25', size=0.25) +
+    scale_fill_manual(values = amplicon_pal) +
+    ylab('count') + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0, size = 7)) +
+    ggtitle('Sample Complete CCS Counts')
+  } %>% ggplotly(tooltip = 'text')
+```
+

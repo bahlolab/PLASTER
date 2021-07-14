@@ -1,5 +1,4 @@
 import groovy.json.JsonSlurper
-
 import java.nio.file.Path
 
 Path path(String filename) {
@@ -52,11 +51,4 @@ List refFastaFileMap(String filename) {
     }
     return [ matches.collectEntries { [(it.key) : it.value.fileName.toString()] },
              matches.collect { it.value } ]
-}
-
-def collect_tsv(channel, String dirname, String filename, List<String> colnames) {
-    channel
-        .map { it.collect { it.toString() }.join('\t') }
-        .collectFile(name: filename, storeDir: dirname, newLine: true,
-                     seed: colnames.join('\t'))
 }

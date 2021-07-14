@@ -2,7 +2,7 @@
 
 process alignment_stats {
     label 'M_NR'
-    publishDir "intermediates/alignment_stats", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/alignment_stats", mode: "$params.intermediate_pub_mode"
     tag { "$rt:$is_bc" }
 
     input:

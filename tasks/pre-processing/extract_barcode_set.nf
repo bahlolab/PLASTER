@@ -1,7 +1,7 @@
 
 process extract_barcode_set {
     label 'XS'
-    publishDir "intermediates/extract_barcode_set", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/extract_barcode_set", mode: "$params.intermediate_pub_mode"
 
     input:
         path manifest

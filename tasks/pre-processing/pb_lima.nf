@@ -15,7 +15,7 @@ workflow pb_lima {
 
 process PBL {
     label 'L'
-    publishDir "intermediates/pb_lima", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/pb_lima", mode: "$params.intermediate_pub_mode"
     tag { rt }
 
     input:

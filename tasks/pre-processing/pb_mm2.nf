@@ -1,7 +1,7 @@
 
 process pb_mm2 {
     label 'XL2_NR'
-    publishDir "intermediates/pb_mm2", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/pb_mm2", mode: "$params.intermediate_pub_mode"
     tag { "$rt:$is_bc" }
 
     input:

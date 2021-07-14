@@ -1,7 +1,7 @@
 
 process extract_ccs_failed {
     label 'M'
-    publishDir "intermediates/extract_ccs_failed", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/extract_ccs_failed", mode: "$params.intermediate_pub_mode"
 
     input:
         path subreads_bam

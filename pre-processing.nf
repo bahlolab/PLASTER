@@ -17,7 +17,7 @@ params.ccs_min_passes = 3
 params.ccs_n_parallel = 10
 
 // import functions and tasks
-include { path; checkManiAmps; refFastaFileMap; collect_tsv} from './functions'
+include { path; checkManiAmps; refFastaFileMap } from './functions'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
 include { pb_merge } from './tasks/pre-processing/pb_merge'
 include { pb_lima } from './tasks/pre-processing/pb_lima'
@@ -72,7 +72,7 @@ workflow {
         annotate_samples |
         map { it + [amplicons_json, sample_manifest] } |
         annotate_amplicons |
-        combine (ref_channel) |
+        combine(ref_channel) |
         pb_mm2_2 |
         filter { it[0] == 'CCS' & it[1] } |
         map { it.drop(2) } |

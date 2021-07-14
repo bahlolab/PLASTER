@@ -1,7 +1,7 @@
 
 process pb_ccs {
     label 'L2'
-    publishDir "intermediates/pb_ccs", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/pb_ccs", mode: "$params.intermediate_pub_mode"
     tag { i }
 
     input:

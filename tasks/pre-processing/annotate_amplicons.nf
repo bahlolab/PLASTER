@@ -2,7 +2,7 @@
 
 process annotate_amplicons {
     label 'M_NR'
-    publishDir "intermediates/annotate_amplicons", mode: "$params.intermediate_pub_mode"
+    publishDir "progress/annotate_amplicons", mode: "$params.intermediate_pub_mode"
     tag { "$rt:$is_bc" }
 
     input:
