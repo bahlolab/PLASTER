@@ -8,7 +8,7 @@ workflow pb_merge {
             map { it.collect { it[1] } } |
             pb_merge_task
     emit:
-        bam = merge.out.bam
+        bam = pb_merge_task.out.bam
 }
 
 process pb_merge_task {

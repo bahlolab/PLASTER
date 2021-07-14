@@ -1,6 +1,5 @@
 #!/usr/bin/env nextflow
 
-//import static Helpers.*
 nextflow.enable.dsl=2
 
 wf_name = "PLASTER: pre-processing"
@@ -18,6 +17,7 @@ params.ccs_n_parallel = 10
 
 // import functions and tasks
 include { path; checkManiAmps; refFastaFileMap } from './functions'
+include { prepare_reference } from './tasks/pre-processing/prepare_reference'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
 include { pb_merge } from './tasks/pre-processing/pb_merge'
 include { pb_lima } from './tasks/pre-processing/pb_lima'
@@ -39,14 +39,11 @@ sample_manifest = path(params.sample_manifest)
 barcodes_fasta = path(params.barcodes_fasta)
 amplicons_json = path(params.amplicons_json)
 checkManiAmps(sample_manifest, amplicons_json)
-path(params.ref_fasta)
-ref = refFastaFileMap(params.ref_fasta)
 rmd = file(workflow.projectDir + '/bin/pre-processing-report.Rmd')
 
 // main workflow
 workflow {
-    ref_channel = Channel.from([ref]).first()
-
+    mmi = prepare_reference(params.ref_fasta)
     extract_barcode_set(sample_manifest, barcodes_fasta)
 
     Channel.from((1..params.ccs_n_parallel) as ArrayList) |
@@ -65,14 +62,14 @@ workflow {
     merge_lima_smry(pb_lima.out.smry)
 
     pb_lima.out.bams |
-        combine(ref_channel) |
+        combine(mmi, by:0) |
         pb_mm2 |
         combine(extract_barcode_set.out.order) |
         map { it + [sample_manifest] } |
         annotate_samples |
         map { it + [amplicons_json, sample_manifest] } |
         annotate_amplicons |
-        combine(ref_channel) |
+        combine(mmi, by:0) |
         pb_mm2_2 |
         filter { it[0] == 'CCS' & it[1] } |
         map { it.drop(2) } |
@@ -89,6 +86,6 @@ workflow {
         map { [it] } |
         combine(merge_lima_smry.out) |
         map { [rmd, amplicons_json, sample_manifest] + it } |
-        pre_processing_report |
-        view
+        first |
+        pre_processing_report
 }
