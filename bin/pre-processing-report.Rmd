@@ -160,17 +160,27 @@ amplicon_pal_3 <-
 **amplicon set:** `r str_c(amplicons_tbl$amplicon, collapse=', ')`
 
 ```{r sample_manifest}
-read_tsv(sample_manifest, col_types = 'ccc') %>% 
+read_tsv(sample_manifest, col_types = 'ccc') %>%
   DT::datatable(filter = 'top',
                 extensions = 'Buttons',
                 options = list(
-                  dom = 'Bt',
+                  dom = 'Btp',
                   buttons = c('copy', 'csv')),
                 caption = htmltools::tags$caption(
                   style = 'font-weight: bold; font-size:150% ;',
                   'Sample Manifest'))
 ```
 
+```{r lima}
+lima_stats %>%
+  DT::datatable(extensions = 'Buttons',
+                options = list(
+                  dom = 'Btp',
+                  buttons = c('copy', 'csv')),
+                caption = htmltools::tags$caption(
+                  style = 'font-weight: bold; font-size:150% ;',
+                  'Demultiplexing Summary (Lima)'))
+```
 
 ```{r read_stats}
 read_stats <-
@@ -368,7 +378,7 @@ sm_read_smry %>%
     filter = 'top',
     extensions = 'Buttons',
     options = list(
-      dom = 'Bt',
+      dom = 'Btp',
       buttons = c('copy', 'csv')),
     caption = htmltools::tags$caption(
       style = 'font-weight: bold; font-size:150% ;',

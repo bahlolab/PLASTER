@@ -1,6 +1,14 @@
 
+workflow pb_mm2_index {
+    take:
+        ref
+    main:
+        PMI(ref)
+    emit:
+        mmi = PMI.out.ccs_mmi | mix(PMI.out.subread_mmi)
+}
 
-process mm2_index_ref {
+process PMI {
     label 'M'
     publishDir "output/ref", mode: params.output_pub_mode
 
@@ -8,8 +16,8 @@ process mm2_index_ref {
         path ref
 
     output:
-        path ccs_mmi, emit: ccs_mmi
-        path subread_mmi, emit: subread_mmi
+        tuple val('CCS'), path(ccs_mmi), emit: ccs_mmi
+        tuple val('SR'), path(subread_mmi), emit: subread_mmi
 
     script:
         base = ref.toString().replaceAll('.fa(sta)?$', '')

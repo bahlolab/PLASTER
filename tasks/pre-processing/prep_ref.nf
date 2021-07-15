@@ -1,14 +1,24 @@
 
+workflow prep_ref {
+    take:
+        ref_fasta
+    main:
+        ref = ref_fasta ==~ '^(ftp|https?)://.+' ?
+            wget_ref(ref_fasta) :
+            Channel.from(path(ref))
+    emit:
+        ref = ref
+}
 
 process wget_ref {
-    label 'S'
+    label 'S_L'
     publishDir "output/ref", mode: params.output_pub_mode
 
     input:
-        val(url)
+        val url
 
     output:
-        path(name)
+        path name
 
     script:
         name_gz = new File(url).name

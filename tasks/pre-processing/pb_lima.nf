@@ -2,29 +2,35 @@
 workflow pb_lima {
     take:
         data
-        bc_fasta
     main:
-        PBL(data, bc_fasta)
+        lima(data)
+        lima.out.smry |
+            toSortedList() |
+            map { [
+                (it.find { it[0] == 'CCS' })[2],
+                (it.find { it[0] == 'SR' })[2] ] } |
+            merge_smry
+
     emit:
-        smry = PBL.out.smry
-//        // rt, is_bc, nr, bam
-        bams = PBL.out.bc.map { it + [true] } |
-            mix (PBL.out.not_bc.map { it + [false] }) |
-            map { [it[0], it[3], it[2].toFile().text.trim() as int, it[1] ] }
+        //  rt, is_bc, nr, bam
+        bams = lima.out.bc |
+            mix (lima.out.not_bc) |
+            map { it.take(2) + [it[2].toFile().text.trim() as int, it[3]] }
+        smry = merge_smry.out
+
 }
 
-process PBL {
+process lima {
     label 'L'
     publishDir "progress/pb_lima", mode: "$params.intermediate_pub_mode"
     tag { rt }
 
     input:
-        tuple val(rt), path(bam)
-        path bc_fasta
+        tuple path(bam), val(rt), path(bc_fasta)
 
     output:
-        tuple val(rt), file(is_bc), file('nr_bc'), emit: bc
-        tuple val(rt), file(no_bc), file('nr_nbc'), emit: not_bc
+        tuple val(rt), val(true), file('nr_bc'), file(is_bc),  emit: bc
+        tuple val(rt), val(false), file('nr_nbc'), file(no_bc), file('nr_nbc'), emit: not_bc
         tuple val(rt), file("${pref}.lima.counts"), file(smry), emit: smry
 
     script:
@@ -42,5 +48,22 @@ process PBL {
         sed '3q;d' $smry | grep -oP '(?<=: )[0-9]+(?=.+\$)' > nr_nbc
         mv $out $is_bc
         mv ${pref}.removed.bam $no_bc
+        """
+}
+
+process merge_smry {
+    label 'XS'
+    publishDir "progress/merge_lima_smry", mode: "$params.intermediate_pub_mode"
+
+    input:
+        tuple path(lima_smry_ccs), path(lima_smry_sr)
+
+    output:
+        path out
+
+    script:
+        out = params.run_id + ".merged_lima_smry.tsv"
+        """
+        merge_lima_smry.R $lima_smry_ccs $lima_smry_sr $out
         """
 }

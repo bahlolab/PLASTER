@@ -3,11 +3,7 @@ import java.nio.file.Path
 
 Path path(String filename) {
 
-    file(filename
-        .replaceAll(/^@TESTDATA@/,
-            "${workflow.projectDir}/test/data")
-        .replaceAll(/^@DATA@/,
-            "${workflow.projectDir}/data"),
+    file(filename.replaceAll(/^@PROJECT_DIR@/, workflow.projectDir.toString()),
         checkIfExists: true)
 }
 

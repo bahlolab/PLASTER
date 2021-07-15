@@ -4,11 +4,10 @@ process extract_ccs_failed {
     publishDir "progress/extract_ccs_failed", mode: "$params.intermediate_pub_mode"
 
     input:
-        path subreads_bam
-        path ccs_bam
+        tuple path(subreads_bam), path(ccs_bam)
 
     output:
-        path out, emit: ccs_failed_subreads
+        path out
 
     script:
         out = params.run_id + ".failed_ccs_subreads.bam"
