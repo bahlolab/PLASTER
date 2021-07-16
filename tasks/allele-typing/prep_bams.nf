@@ -15,9 +15,10 @@ workflow prep_bams {
         bams = bams.downsample |
             downsample |
             mix(bams.pass_through) |
-            index
+            index |
+            map { it[[1,0,2,3,4]] }
     emit:
-        // sm, am, nr, bam, bai
+        // am, sm, nr, bam, bai
         bams
 }
 
