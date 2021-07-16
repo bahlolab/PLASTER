@@ -9,7 +9,7 @@ process index_bam {
         tuple val(sm), val(am), val(nr), path(bam)
 
     output:
-        tuple val(sm), val(am), val(nr), path(bam), path("${bam}.bai"), emit: bams
+        tuple val(sm), val(am), val(nr), path(bam), path("${bam}.bai")
 
     script:
         """

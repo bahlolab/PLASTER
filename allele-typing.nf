@@ -21,6 +21,8 @@ include { path; parseManifestAT; checkManiAmpsAT } from './functions'
 include { prep_ref } from './tasks/prep_ref'
 include { prep_bams } from './tasks/allele-typing/prep_bams'
 include { gatk as gatk_1; gatk as gatk_2 } from './tasks/allele-typing/gatk'
+include { phase } from './tasks/allele-typing/phase'
+
 
 // check and load inputs
 manifest = parseManifestAT(params.manifest)
@@ -35,12 +37,12 @@ workflow {
         .collect { k, v -> [k, "$v.chrom:$v.start-$v.end"] }
         .with{ Channel.fromList(it) }
 
-
     (Channel.fromList(manifest) |
         map { (it.values() as ArrayList)[1..4] } |
         prep_bams |
         combine(amp_channel, by:0) |
         map { it[[0, 5, 1]] + ['NA'] + it[[2, 3, 4]] })
-        .with { gatk_1(it, prep_ref.out, 1, params.qd_1) } |
-        view
+        .with { gatk_1(it, prep_ref.out, 1, params.qd_1) }
+
+    phase(prep_bams.out, gatk_1.out) | view
 }
