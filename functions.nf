@@ -2,7 +2,6 @@ import groovy.json.JsonSlurper
 import java.nio.file.Path
 
 Path path(String filename) {
-
     file(filename.replaceAll(/^@PROJECT_DIR@/, workflow.projectDir.toString()),
         checkIfExists: true)
 }
@@ -22,6 +21,45 @@ void checkManiAmps(Path manifest_tsv, Path amplicons_json) {
         assert (v as Map).keySet()
             .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
     }
+}
+
+void checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
+    // check amplicons
+    def amplicons = (new JsonSlurper().parse(amplicons_json.toFile())) as Map
+    assert amplicons.keySet().containsAll(amplicon_set)
+    amplicons.each { k, v ->
+        assert (v as Map).keySet()
+            .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
+    }
+}
+
+ArrayList parseManifestPP(String filename) {
+    header = ['sample', 'barcode', 'amplicons']
+    manifest_path = path(filename)
+    manifest = manifest_path.toFile().readLines()
+        .with { lines ->
+            assert header == lines[0].split('\t')
+            lines.each {assert it.split('\t').size() == header.size() }
+            lines.drop(1).collect {
+                [header, it.split('\t')].transpose().collectEntries { k, v -> [(k): v] } } }
+        .collect {
+            it.amplicons = it.amplicons.split(';')
+            it }
+}
+
+ArrayList parseManifestAT(String filename) {
+    header = ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file']
+    manifest_path = path(filename)
+    manifest = manifest_path.toFile().readLines()
+        .with { lines ->
+            assert header == lines[0].split('\t')
+            lines.each {assert it.split('\t').size() == header.size() }
+            lines.drop(1).collect {
+                [header, it.split('\t')].transpose().collectEntries { k, v -> [(k): v] } } }
+        .collect {
+            it.n_reads = it.n_reads as Integer
+            it.bam_file = path(it.bam_file)
+            it }
 }
 
 

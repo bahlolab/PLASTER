@@ -16,8 +16,8 @@ params.ccs_min_passes = 3
 params.ccs_n_parallel = 100
 
 // import functions and tasks
-include { path; checkManiAmps; refFastaFileMap } from './functions'
-include { prep_ref } from './tasks/pre-processing/prep_ref'
+include { path; checkManiAmps } from './functions'
+include { prep_ref } from './tasks/prep_ref'
 include { pb_mm2_index } from './tasks/pre-processing/pb_mm2_index'
 include { pb_ccs } from './tasks/pre-processing/pb_ccs'
 include { pb_merge } from './tasks/pre-processing/pb_merge'
@@ -43,8 +43,7 @@ rmd = file(workflow.projectDir + '/bin/pre-processing-report.Rmd')
 
 // main workflow
 workflow {
-    prep_ref(params.ref_fasta) |
-        pb_mm2_index
+    prep_ref(params.ref_fasta, 'mmi')
 
     extract_barcode_set(sample_manifest, barcodes_fasta)
 
@@ -58,20 +57,21 @@ workflow {
         pb_lima
 
     pb_lima.out.bams |
-        combine(pb_mm2_index.out.mmi, by:0) |
+        combine(prep_ref.out, by:0) |
         pb_mm2 |
         combine(extract_barcode_set.out.order) |
         map { it + [sample_manifest] } |
         annotate_samples |
         map { it + [amplicons_json, sample_manifest] } |
         annotate_amplicons |
-        combine(pb_mm2_index.out.mmi, by:0) |
+        combine(prep_ref.out, by:0) |
         pb_mm2_2 |
         filter { it[0] == 'CCS' & it[1] } |
         map { it.drop(2) } |
         split_sample_amplicons |
         index_bam |
         map { [params.run_id] + it.dropRight(1) } |
+        map { it.take(4) + [file("./output/bam/${it[4].fileName}").toRealPath()] } |
         map { it.collect { it.toString() }.join('\t') } |
         collectFile(name: 'sample_amplicon_bam_manifest.tsv', storeDir: './output/', newLine: true,
             seed: ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file'].join('\t'))
