@@ -11,7 +11,7 @@ workflow phase {
             combine(bams, by: 0))
             .with { assign_snps(it, ref )} |
                 combine(copy_num, by: 0..1 ) |
-                AmpPhaseR
+                amp_phaser
     emit:
         AmpPhaseR.out.phases
 }
@@ -57,7 +57,7 @@ process assign_snps {
     """
 }
 
-process AmpPhaseR {
+process amp_phaser {
     label 'S2'
     publishDir "progress/AmpPhaseR", mode: 'symlink'
     publishDir "output/AmpPhaseR", mode: 'copy', pattern: '*.png'

@@ -62,6 +62,11 @@ phase_amplicon <- function(gds,
                           count / sum(count[!is_singleton]),
                           NA_real_))
 
+  if (sum(derep_tbl$freq > min_phase_freq, na.rm = T)==0) {
+    return(list(success = FALSE,
+                note = 'all Singletons or too few reads'))
+  }
+
   cand_phases <-
     derep_tbl %>%
     select(-indices) %>%
@@ -282,7 +287,8 @@ phase_amplicon <- function(gds,
     })
 
 
-  return(list(read_phase = read_phase,
+  return(list(success = TRUE,
+              read_phase = read_phase,
               phase_summary = phase_summary,
               phase_plot = phase_plot))
 }

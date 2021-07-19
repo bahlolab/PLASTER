@@ -7,7 +7,11 @@ workflow prep_bams {
         bams = data |
             groupTuple(by:[0,1], sort: true) |
             map { it[2] = it[2].sum(); it } |
-            branch { multi: it[3].size() > 1; single: true }
+            branch {
+                too_few: it[2] < params.min_reads
+                multi: it[3].size() > 1
+                single: true }
+            // TODO: report failed bams
         bams = bams.multi |
             merge |
             mix(bams.single.map { it[3] = it[3][0]; it }) |
