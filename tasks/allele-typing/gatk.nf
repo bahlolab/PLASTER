@@ -39,7 +39,6 @@ process haplotype_caller {
             -ERC GVCF \\
             --intervals $reg \\
             --sample-ploidy $ploidy \\
-            --sample-name $sm \\
             --pcr-indel-model AGGRESSIVE
         """
 }

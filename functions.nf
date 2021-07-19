@@ -6,6 +6,17 @@ Path path(String filename) {
         checkIfExists: true)
 }
 
+ArrayList<Map> readTSV(String filename, List<String> colnames) {
+    lines = path(filename).toFile().readLines()
+    assert colnames == lines[0].split('\t')
+    lines.each {assert it.split('\t').size() == colnames.size() }
+    lines.drop(1)
+        .collect {it.split('\t') }
+        .collect {
+            [colnames, it].transpose().collectEntries { k, v -> [(k): v] }
+        }
+}
+
 void checkManiAmps(Path manifest_tsv, Path amplicons_json) {
     // check manifest
     def manifest_lines = manifest_tsv.toFile().readLines().drop(1) as ArrayList
@@ -48,21 +59,29 @@ ArrayList parseManifestPP(String filename) {
             it }
 }
 
-ArrayList parseManifestAT(String filename) {
-    header = ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file']
-    manifest_path = path(filename)
-    manifest = manifest_path.toFile().readLines()
-        .with { lines ->
-            assert header == lines[0].split('\t')
-            lines.each {assert it.split('\t').size() == header.size() }
-            lines.drop(1).collect {
-                [header, it.split('\t')].transpose().collectEntries { k, v -> [(k): v] } } }
+ArrayList<Map> parseManifestAT(String filename) {
+    readTSV(filename, ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file'])
         .collect {
             it.n_reads = it.n_reads as Integer
             it.bam_file = path(it.bam_file)
             it }
 }
 
+ArrayList parseCopyNum(ArrayList<Map> manifest, String filename, Integer default_cn) {
+    sm_am_set = manifest.collect{[it.sample, it.amplicon]}.unique()
+    if (filename) {
+        cn = readTSV(filename, ['sample', 'amplicon', 'copy_num'])
+            .collect {
+                it.copy_num = it.copy_num as Integer
+                it }
+            .findAll { sm_am_set.contains([it.sample, it.amplicon]) }
+        missing = sm_am_set - cn.collect{[it.sample, it.amplicon]}.unique()
+        cn = cn + missing.collect { s, a -> [sample: s, amplicon: a, copy_num: default_cn] }
+    } else {
+        cn = sm_am_set.collect { s, a -> [sample: s, amplicon: a, copy_num: default_cn] }
+    }
+    cn.collect { [it.amplicon, it.sample, it.copy_num] }
+}
 
 List refFastaFileMap(String filename) {
     def suffs = ['dict', 'fai', 'ccs.mmi', 'subread.mmi']

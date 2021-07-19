@@ -71,7 +71,7 @@ workflow {
         split_sample_amplicons |
         index_bam |
         map { [params.run_id] + it.dropRight(1) } |
-        map { it.take(4) + [file("./output/bam/${it[4].fileName}").toRealPath()] } |
+        map { it.take(4) + [file(file("./output/bam").toRealPath().toString() + '/'+ it[4].fileName)] } |
         map { it.collect { it.toString() }.join('\t') } |
         collectFile(name: 'sample_amplicon_bam_manifest.tsv', storeDir: './output/', newLine: true,
             seed: ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file'].join('\t'))
