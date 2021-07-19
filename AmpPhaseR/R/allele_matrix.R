@@ -32,7 +32,8 @@ allele_matrix <- function(gds) {
     }))
 
   depth <-
-    SeqArray::seqGetData(gds, 'annotation/format/DP')$data %>%
+    SeqArray::seqGetData(gds, 'annotation/format/DP') %>%
+    (function(x) `if`(is.list(x), x$data, x)) %>%
     set_rownames(SeqArray::seqGetData(gds, 'sample.id')) %>%
     set_colnames(str_c('V', SeqArray::seqGetData(gds, 'variant.id'))) %>%
     as.data.frame() %>%
