@@ -1,4 +1,6 @@
 
+include { readTSV } from '../../functions'
+
 workflow phase {
     take:
         bams // am, sm, nr, bam, bai
@@ -12,8 +14,24 @@ workflow phase {
             .with { assign_snps(it, ref )} |
                 combine(copy_num, by: 0..1 ) |
                 amp_phaser
+        // TODO - report phased.fail
+        phased = amp_phaser.out.phases |
+            map { it + [
+                readTSV(it[3], ['phase', 'count', 'freq', 'ratio', 'copy_num'])
+                    .collect { it.count as int }.min() ]} |
+            branch { pass: it[4] >= params.min_reads_phased; fail: true}
+
+        out = phased.pass |
+            map { it.take(3) } |
+            combine(bams, by: 0..1) |
+            split_phases |
+            transpose |
+            map { it.take(2) +
+                [(it[3] =~ '([0-9]+)\\.bam$')[0][1], it[2].toFile().text as int] +
+                it.takeRight(2) }
+
     emit:
-        AmpPhaseR.out.phases
+        out // am, sm, ps, nr, bam, bai
 }
 
 
@@ -45,7 +63,7 @@ process assign_snps {
         tuple path(ref), path(fai), path(dict)
 
     output:
-        tuple val(am), val(sm), file(vcf)
+        tuple val(am), val(sm), val(nr), file(vcf)
 
     script:
     vcf = "SM-${sm}.read_vars.vcf.gz"
@@ -58,14 +76,14 @@ process assign_snps {
 }
 
 process amp_phaser {
-    label 'S2'
+    label 'S2_NR'
     publishDir "progress/AmpPhaseR", mode: 'symlink'
     publishDir "output/AmpPhaseR", mode: 'copy', pattern: '*.png'
     publishDir "output/AmpPhaseR", mode: 'copy', pattern: '*_read_phase_smry.tsv.gz'
     tag { "$sm:$am" }
 
     input:
-        tuple val(am), val(sm), path(vcf), val(cn)
+        tuple val(am), val(sm), val(nr), path(vcf), val(cn)
 
     output:
         tuple val(am), val(sm), path("${pref}_phased.tsv.gz"), path("${pref}_phase_summary.tsv"), emit: phases
@@ -82,5 +100,25 @@ process amp_phaser {
         --max-freq-abs-delta 0.75 \\
         --max-freq-rel-delta 0.75
     """
+}
+
+process split_phases {
+    label 'M_NR'
+    publishDir "progress/split_phases", mode: params.intermediate_pub_mode
+    tag { "$sm:$am" }
+
+    input:
+        tuple val(am), val(sm), file(read_phase), val(nr), path(bam), path(bai)
+
+    output:
+        tuple val(am), val(sm), path("${pref}_*.bam.count"), path("${pref}_*.bam"), path("${pref}_*.bam.bai")
+
+    script:
+        pref = "SM-${sm}.AM-${am}.phase"
+        """
+        samtools view -u $bam | bam_annotate_phases.py - $read_phase --out ${pref}.bam --update-rg
+        samtools split ${pref}.bam -f "%*_%!.%."
+        for BAM in ${pref}_*.bam; do samtools index \$BAM; samtools view \$BAM | wc -l > \$BAM.count; done
+        """
 }
 

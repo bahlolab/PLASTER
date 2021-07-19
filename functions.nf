@@ -6,8 +6,10 @@ Path path(String filename) {
         checkIfExists: true)
 }
 
-ArrayList<Map> readTSV(String filename, List<String> colnames) {
-    lines = path(filename).toFile().readLines()
+ArrayList<Map> readTSV(Object file, List<String> colnames) {
+    lines = file instanceof Path ?
+        file.toFile().readLines() :
+        path(file).toFile().readLines()
     assert colnames == lines[0].split('\t')
     lines.each {assert it.split('\t').size() == colnames.size() }
     lines.drop(1)

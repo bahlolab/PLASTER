@@ -21,5 +21,6 @@ RUN /opt/conda/envs/$NAME/bin/Rscript --vanilla install_packages.R GITHUB:github
 # set env variables
 ENV TZ=Etc/UTC \
     R_HOME=/usr/local/lib/R/ \
-    R_ENVIRON=/usr/local/lib/R/etc/Renviron R_LIBS_USER=/usr/local/lib/R/site-library \
+    R_ENVIRON=/usr/local/lib/R/etc/Renviron \
+    R_LIBS_USER=/usr/local/lib/R/site-library \
     PATH="/opt/conda/envs/$NAME/bin:/opt/conda/bin:${PATH}"

@@ -52,27 +52,28 @@ if (result$success) {
     mutate(freq = n / sum(n)) %>% 
     arrange(desc(n)) %>% 
     write_tsv(str_c(opts$out_prefix, '_read_phase_smry.tsv.gz'))
-  
+
   result$read_phase %>% 
     select(qname = read_name, phase) %>% 
     filter(str_detect(phase, 'phase_')) %>% 
     mutate(phase = str_remove(phase, 'phase_')) %>% 
     write_tsv(str_c(opts$out_prefix, '_phased.tsv.gz'))
-  
-  write_tsv(result$phase_summary, str_c(opts$out_prefix, '_phase_summary.tsv'))
-  
+  result$phase_summary %>%
+    select(phase, count, freq, ratio, copy_num) %>%
+    write_tsv(str_c(opts$out_prefix, '_phase_summary.tsv'))
+
   ggsave(plot = result$phase_plot, str_c(opts$out_prefix, '_phase_plot.png'), width =8, height = 11)
 } else {
   # create empty files so nextflow process doesn't fail
   tibble(phase = character(), n = integer(), freq = double()) %>% 
     write_tsv(str_c(opts$out_prefix, '_read_phase_smry.tsv.gz'))
-  
+
   tibble(qname = character(), phase = integer()) %>% 
     write_tsv(str_c(opts$out_prefix, '_phased.tsv.gz'))
-  
-  tibble(phase = character(), count = integer(), freq = double(), ratio = integer(),
-         copy_num = integer(), abs_freq_delta = double(), abs_rel_delta = double()) %>% 
+
+  tibble(phase = character(), count = integer(), freq = double(),
+         ratio = integer(), copy_num = integer()) %>%
     write_tsv(str_c(opts$out_prefix, '_phase_summary.tsv'))
-  
+
   file.create(str_c(opts$out_prefix, '_phase_plot.png'))
 }
