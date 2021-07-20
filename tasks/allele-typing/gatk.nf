@@ -11,8 +11,7 @@ workflow gatk {
             groupTuple(by:[0,1], sort: true)
         genotype_gvcfs(gvcfs, ref, QD)
     emit:
-        // am, vcf, tbi
-        genotype_gvcfs.out
+        genotype_gvcfs.out //am, vcf, tbi
 }
 
 process haplotype_caller {
@@ -57,7 +56,7 @@ process genotype_gvcfs {
         tuple val(am), path(vcf), path("${vcf}.tbi")
 
     script:
-        vcf = "${am}.vcf.gz"
+        vcf = "${am}.gatk.vcf.gz"
         """
         gatk CombineGVCFs \\
             --java-options "-Xmx4G -Djava.io.tmpdir=." \\

@@ -14,12 +14,22 @@ workflow phase {
             .with { assign_snps(it, ref )} |
                 combine(copy_num, by: 0..1 ) |
                 amp_phaser
-        // TODO - report phased.fail
         phased = amp_phaser.out.phases |
             map { it + [
                 readTSV(it[3], ['phase', 'count', 'freq', 'ratio', 'copy_num'])
                     .collect { it.count as int }.min() ]} |
             branch { pass: it[4] >= params.min_reads_phased; fail: true}
+        // write samples with too few phased reads to file
+        phased.fail |
+            map { [it[1], it[0]].join('\t') } |
+            collectFile(name: 'low_phased_read_count.tsv', storeDir: './output/', newLine: true,
+                seed: ['sample', 'amplicon'].join('\t')) |
+            map {
+                lines = it.toFile().readLines()
+                if (lines.size() > 1) {
+                    println "Warning: ${lines.size() - 1} sample-amplicons excluded due to low phased read count, written to $it"
+                }
+            }
 
         out = phased.pass |
             map { it.take(3) } |

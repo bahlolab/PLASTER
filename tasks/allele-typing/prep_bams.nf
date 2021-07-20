@@ -11,7 +11,17 @@ workflow prep_bams {
                 too_few: it[2] < params.min_reads
                 multi: it[3].size() > 1
                 single: true }
-            // TODO: report failed bams
+        // write samples with too few reads to file
+        bams.too_few |
+            map { it.take(3).collect {it.toString()}.join('\t') } |
+            collectFile(name: 'low_read_count.tsv', storeDir: './output/', newLine: true,
+                seed: ['sample', 'amplicon', 'n_reads'].join('\t')) |
+            map {
+                lines = it.toFile().readLines()
+                if (lines.size() > 1) {
+                    println "Warning: ${lines.size() - 1} sample-amplicons excluded due to low read cout, written to $it"
+                }
+            }
         bams = bams.multi |
             merge |
             mix(bams.single.map { it[3] = it[3][0]; it }) |
