@@ -1,7 +1,7 @@
 
 
 process pre_processing_report {
-    label 'S2'
+    label 'S4'
     publishDir "output", mode: params.output_pub_mode
 
     input:

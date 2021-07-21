@@ -1,17 +1,52 @@
 
 workflow gatk {
     take:
-        data // am, reg, sm, ps, nr, bam, bai
-        ref // fasta, fai, dict
-        ploidy
-        QD
+    par // ?ploidy, ?qd, ?targ
+    bams // am, sm, ?ps, nr, bam, bai
+    amps // am, reg, ?sites, ?sites_tbi
+    ref // fasta, fai, dict
 
     main:
-        gvcfs = haplotype_caller(data, ref, ploidy) |
-            groupTuple(by:[0,1], sort: true)
-        genotype_gvcfs(gvcfs, ref, QD)
+    par = [ploidy:2, qd: '2.0', targ: false] + par
+    bams = bams.map { it.size() == 6 ? it : it.take(2) + [null] + it.takeRight(3) }
+
+    (amps |
+        map { it.take(2) } |
+        combine(bams, by:0))
+        .with { haplotype_caller(it, ref, par.ploidy) }
+
+    (haplotype_caller.out |
+        groupTuple(by:[0,1], sort: true) |
+        map { it[[0, 1, 4, 5]] })
+        .with { genotype_gvcfs(it, ref, par.qd) }
+
+    if (par.targ) {
+        targeted =
+            genotype_gvcfs.out |
+                combine(amps, by:0) |
+                branch { yes: it.size() == 6; no: true}
+
+        (targeted.yes |
+            map{ it.take(3) + it.takeRight(2) })
+            .with { get_targ_sites(it, ref) }
+
+        ((get_targ_sites.out | // am, sites, tbi
+            combine(amps.map { it.take(2) }, by: 0) | //am, sites, tbi, reg
+            combine(bams, by: 0)) // am, sites, tbi, reg,  sm, ps, nr, bam, bai
+            .with { call_targ_sites(it, ref, par.ploidy) } |
+            groupTuple(by: 0, sort: true) |
+            map { it[[0, 3, 4]] } |
+            combine(get_targ_sites.out, by:0) |
+            combine(genotype_gvcfs.out, by:0))
+            .with { merge_targ_sites(it, ref) }
+        out = targeted.no |
+            map {it.take(3) } |
+            mix(merge_targ_sites.out)
+    } else {
+        out = genotype_gvcfs.out
+    }
     emit:
-        genotype_gvcfs.out //am, vcf, tbi
+        out//am, vcf, tbi
 }
 
 process haplotype_caller {
@@ -20,16 +55,16 @@ process haplotype_caller {
     tag { "$sm:$am:$ps" }
 
     input:
-        tuple val(am), val(reg), val(sm), val(ps), val(nr), path(bam), path(bai)
-        tuple path(ref), path(fai), path(dict)
-        val ploidy
+    tuple val(am), val(reg), val(sm), val(ps), val(nr), path(bam), path(bai)
+    tuple path(ref), path(fai), path(dict)
+    val(ploidy)
 
     output:
-        tuple val(am), val(reg), path(gvcf), path("${gvcf}.tbi")
+    tuple val(am), val(reg), val(sm), val(ps), path(gvcf), path("${gvcf}.tbi")
 
     script:
-        gvcf = "SM-${sm}.AM-${am}.PS-${ps}.gvcf.gz"
-        """
+    gvcf = "SM-${sm}.AM-${am}" + (ps ? ".PS-${ps}" : '') + ".gvcf.gz"
+    """
         gatk HaplotypeCaller \\
             --java-options "-Xmx5G -Djava.io.tmpdir=." \\
             -R $ref \\
@@ -50,7 +85,7 @@ process genotype_gvcfs {
     input:
         tuple val(am), val(reg), path(gvcfs), path(tbis)
         tuple path(ref), path(fai), path(dict)
-        val qd
+        val(qd)
 
     output:
         tuple val(am), path(vcf), path("${vcf}.tbi")
@@ -64,7 +99,7 @@ process genotype_gvcfs {
             -L $reg \\
             -O combined.g.vcf.gz \\
             --disable-sequence-dictionary-validation \\
-            --variant ${gvcfs.join(' --variant ')}
+            --variant ${gvcfs.sort{ it.name }.join(' --variant ')}
 
         gatk GenotypeGVCFs \\
             --java-options "-Xmx4G -Djava.io.tmpdir=." \\
@@ -77,10 +112,92 @@ process genotype_gvcfs {
 
         bcftools filter tmp.vcf.gz -Ou -e 'QD<$qd' -s lowQD |
             bcftools view -f PASS -Ou |
-            bcftools norm -m-both -f $ref -Ou |
+            bcftools norm -f $ref -Ou |
             bcftools view -i 'GT="alt"' -Oz -o $vcf
 
         bcftools index -t $vcf
         """
 }
 
+process get_targ_sites {
+    label 'S'
+    publishDir "progress/get_targ_sites", mode: "$params.intermediate_pub_mode"
+    tag { "$am" }
+
+    input:
+        tuple val(am), path(vcf), path(tbi), path(sites), path(sites_tbi)
+        tuple path(ref), path(fai), path(dict)
+
+    output:
+        tuple val(am), path(out), path("${out}.tbi")
+
+    script:
+        out = "${am}.absent.vcf.gz"
+        """
+        bcftools norm -m-any -f $ref $sites -Oz -o sites.norm.vcf.gz
+        bcftools index -t sites.norm.vcf.gz
+        bcftools view -G -Ou $vcf |
+            bcftools norm -m-any -f $ref -Oz -o calls.norm.vcf.gz
+        bcftools index -t calls.norm.vcf.gz
+        bcftools isec sites.norm.vcf.gz calls.norm.vcf.gz -C -w 1 -Ou |
+            bcftools norm -m+any -f $ref -Oz -o $out
+        bcftools index -t $out
+        """
+}
+
+process call_targ_sites {
+    label 'M2_NR'
+    publishDir "progress/call_targ_sites", mode: "$params.intermediate_pub_mode"
+    tag { "$sm:$am:$ps" }
+
+    input:
+        tuple val(am), path(sites), path(tbi), val(reg), val(sm), val(ps), val(nr), path(bam), path(bai)
+        tuple path(ref), path(fai), path(dict)
+        val(ploidy)
+
+    output:
+        tuple val(am), val(sm), val(ps), path(out), path("${out}.tbi")
+
+    script:
+        out = "SM-${sm}.AM-${am}" + (ps ? ".PS-${ps}" : '') + ".targ.vcf.gz"
+        """
+        gatk HaplotypeCaller \\
+            --java-options "-Xmx4G -Djava.io.tmpdir=." \\
+            -R $ref \\
+            -I $bam \\
+            -O tmp.vcf.gz \\
+            --alleles $sites \\
+            --force-call-filtered-alleles \\
+            --intervals $reg \\
+            --sample-ploidy $ploidy
+        bcftools view tmp.vcf.gz -i 'GT="alt"' -Ou |
+            bcftools norm -m-any -f $ref -Oz -o $out
+        bcftools index -t $out
+        """
+}
+
+process merge_targ_sites {
+    label 'M2'
+    publishDir "progress/merge_targ_sites", mode: "$params.intermediate_pub_mode"
+    tag { am }
+
+    input:
+        tuple val(am), path(vcfs), path(tbis), path(sites), path(stbi), path(disc), path(dtbi)
+        tuple path(ref), path(fai), path(dict)
+
+    output:
+        tuple val(am), path(out), path("${out}.tbi")
+
+    script:
+        out = "${am}.gatk_targeted.vcf.gz"
+        """
+        bcftools merge -0 -Oz ${vcfs.sort{ it.name }.join(' ')} -o merged.vcf.gz
+        bcftools index -t merged.vcf.gz
+        bcftools norm -m-any -f $ref $sites -Oz -o sites.norm.vcf.gz
+        bcftools index -t sites.norm.vcf.gz
+        bcftools isec merged.vcf.gz sites.norm.vcf.gz -p isec -Oz -w 1
+        bcftools concat -a isec/0002.vcf.gz $disc -D -Ou |
+            bcftools norm -m+any -f $ref -D -Oz -o $out
+        bcftools index -t $out
+        """
+}

@@ -36,7 +36,7 @@ void checkManiAmps(Path manifest_tsv, Path amplicons_json) {
     }
 }
 
-Map checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
+ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
     // check amplicons
     def amplicons = (new JsonSlurper().parse(amplicons_json.toFile())) as Map
     assert amplicons.keySet().containsAll(amplicon_set)
@@ -44,7 +44,10 @@ Map checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
         assert (v as Map).keySet()
             .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
     }
-    return amplicons
+    amplicons.collect { k, v ->
+        [k, "$v.chrom:$v.start-$v.end"] +
+            (v.target_vcf ? [path(v.target_vcf), path(v.target_vcf + '.tbi')] : [])
+    }
 }
 
 ArrayList parseManifestPP(String filename) {

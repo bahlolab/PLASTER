@@ -32,43 +32,36 @@ include { vep } from './tasks/allele-typing/vep'
 manifest = parseManifestAT(params.manifest)
 amplicons_json = path(params.amplicons_json)
 amplicons = checkManiAmpsAT(manifest.collect{it.amplicon}.unique(), amplicons_json)
-amplicons_targ = amplicons
-    .collect { k, v -> [k, v.target_vcf] }
-    .findAll {it[1] }
-    .collect { [it[0], path(it[1]), path(it[1] + '.tbi')] }
+targ = amplicons.any { it.size() == 4 }
 copy_num = parseCopyNum(manifest, params.copy_num, params.ploidy)
 
 // main workflow
 workflow {
     ref = prep_ref(params.ref_fasta, 'fai')
 
-    amp_channel = amplicons
-        .collect { k, v -> [k, "$v.chrom:$v.start-$v.end"] }
-        .with { Channel.fromList(it) }
+    amps = Channel.fromList(amplicons)
 
     bams = Channel.fromList(manifest) |
         map { (it.values() as ArrayList)[1..4] } |
         prep_bams
 
-    (bams |
-        combine(amp_channel, by: 0) |
-        map { it[[0, 5, 1]] + ['NA'] + it[[2, 3, 4]] } )
-        .with{ gatk_1(it, ref, params.ploidy, params.qd_1) }
+    gatk_1(bams, amps.map{ it.take(2) }, ref,
+           qd: params.qd_1, targ: false)
 
     phase(bams, gatk_1.out, copy_num, ref)
 
-    (amp_channel |
-        combine(phase.out, by: 0))
-        .with { gatk_2(it, ref, 1, params.qd_2) }
+    gatk_2(phase.out, amps, ref,
+           ploidy: 1, qd: params.qd_2, targ: targ) |
+        view
 
-    targ_channel = Channel.fromList(amplicons_targ)
-    (targ_channel |
-        combine(amp_channel, by:0) |
-        combine(phase.out, by: 0))
-        .with { targeted(it, ref) }
 
-    gatk_2.out |
-        map { ['gatk'] + it} |
-        mix(targeted.out | map { ['targeted'] + it }) |
-        vep
+//    targ_channel = Channel.fromList(amplicons_targ)
+//    (targ_channel |
+//        combine(amp_channel, by:0) |
+//        combine(phase.out, by: 0))
+//        .with { targeted(it, ref) }
+
+//    gatk_2.out |
+//        map { ['gatk'] + it} |
+//        vep
 }
