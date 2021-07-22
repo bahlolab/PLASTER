@@ -31,7 +31,7 @@ include { vep } from './tasks/allele-typing/vep'
 // check and load inputs
 manifest = parseManifestAT(params.manifest)
 amplicons_json = path(params.amplicons_json)
-amplicons = checkManiAmpsAT(manifest.collect{it.amplicon}.unique(), amplicons_json)
+(amplicons, fusion) = checkManiAmpsAT(manifest.collect{it.amplicon}.unique(), amplicons_json)
 targ = amplicons.any { it.size() == 4 }
 copy_num = parseCopyNum(manifest, params.copy_num, params.ploidy)
 
@@ -41,27 +41,16 @@ workflow {
 
     amps = Channel.fromList(amplicons)
 
-    bams = Channel.fromList(manifest) |
-        map { (it.values() as ArrayList)[1..4] } |
-        prep_bams
+    (Channel.fromList(manifest) |
+        map { (it.values() as ArrayList)[1..4] })
+        .with { prep_bams (it, ref, fusion)}
 
-    gatk_1(bams, amps.map{ it.take(2) }, ref,
-           qd: params.qd_1, targ: false)
-
-    phase(bams, gatk_1.out, copy_num, ref)
-
-    gatk_2(phase.out, amps, ref,
-           ploidy: 1, qd: params.qd_2, targ: targ) |
-        view
-
-
-//    targ_channel = Channel.fromList(amplicons_targ)
-//    (targ_channel |
-//        combine(amp_channel, by:0) |
-//        combine(phase.out, by: 0))
-//        .with { targeted(it, ref) }
-
-//    gatk_2.out |
-//        map { ['gatk'] + it} |
-//        vep
+//    gatk_1(prep_bams.out, amps.map{ it.take(2) }, ref,
+//           qd: params.qd_1, targ: false)
+//
+//    phase(prep_bams.out, gatk_1.out, copy_num, ref)
+//
+//    gatk_2(phase.out, amps, ref,
+//           ploidy: 1, qd: params.qd_2, targ: targ) |
+//       vep
 }

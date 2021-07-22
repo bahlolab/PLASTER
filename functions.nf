@@ -44,10 +44,17 @@ ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
         assert (v as Map).keySet()
             .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
     }
-    amplicons.collect { k, v ->
+    amps = amplicons.collect { k, v ->
         [k, "$v.chrom:$v.start-$v.end"] +
             (v.target_vcf ? [path(v.target_vcf), path(v.target_vcf + '.tbi')] : [])
     }
+    fusion = amplicons
+        .collect { k, v -> [k, v.fusion ] }
+        .find { a, f -> a != f & amplicons.containsKey(f) }
+        .with { it ? amplicons.subMap(it).collectEntries {
+            k, v -> [(k): v.subMap(['chrom', 'start', 'end', 'strand'])]
+        } : null }
+    return [amps, fusion]
 }
 
 ArrayList parseManifestPP(String filename) {
@@ -86,32 +93,4 @@ ArrayList parseCopyNum(ArrayList<Map> manifest, String filename, Integer default
         cn = sm_am_set.collect { s, a -> [sample: s, amplicon: a, copy_num: default_cn] }
     }
     cn.collect { [it.amplicon, it.sample, it.copy_num] }
-}
-
-List refFastaFileMap(String filename) {
-    def suffs = ['dict', 'fai', 'ccs.mmi', 'subread.mmi']
-    def inclusive=true
-    def fn = new File(filename).toPath().toAbsolutePath()
-    def basename = fn.fileName.toString()
-    def pattern =  /.*\.fa(sta)?(\.gz)?$/
-    if (! basename ==~  pattern ){
-        errorExit("Error: reference fasta file name must match pattern \"$pattern\".")
-    }
-    def base = basename.replaceAll(/\.fa(sta)?(\.gz)?$/, '') + '.*\\.'
-    def patterns = suffs.collectEntries { [(it): base + it + '$' ] }
-    def matches = patterns.collectEntries {
-        [ (it.key) : (new FileNameByRegexFinder().getFileNames(fn.parent.toString(), it.value))[0] ]
-    }
-    def failed = matches.findAll{ it.value == null }.keySet()
-    if (failed) {
-        errorExit("Error: File(s) with suffix \"${failed.join('", "')}\" not found for file \"$filename\"\n")
-    }
-    matches = matches.collectEntries { [ (it.key) : (new File(it.value).toPath() ) ] }
-    if (inclusive){
-        matches.put('fa', fn)
-        def gzi = (new FileNameByRegexFinder().getFileNames(fn.parent.toString(), base + 'gzi' + '$'))[0]
-        if (gzi) { matches.put('gzi', (new File(gzi).toPath()) )}
-    }
-    return [ matches.collectEntries { [(it.key) : it.value.fileName.toString()] },
-             matches.collect { it.value } ]
 }
