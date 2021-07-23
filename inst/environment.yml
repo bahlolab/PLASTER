@@ -25,6 +25,7 @@ dependencies:
     - r-plotly
     - r-jsonlite
     - r-devtools
+    - zip
     - bioconductor-rsamtools
     - bioconductor-biostrings
     - bioconductor-decipher
