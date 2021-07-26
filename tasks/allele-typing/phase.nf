@@ -42,7 +42,7 @@ workflow phase {
             map {
                 lines = it.toFile().readLines()
                 if (lines.size() > 1) {
-                    println "Warning: ${lines.size() - 1} sample-amplicons excluded due to low phased read count, written to $it"
+                    println "Note: ${lines.size() - 1} sample-amplicons excluded due to low phased read count, written to $it"
                 }
             }
 
@@ -56,8 +56,7 @@ workflow phase {
                 it.takeRight(2) }
 
     emit:
-        bams = bams // am, sm, ps, nr, bam, bai
-        smry = phase_smry // am, smry
+        bams // am, sm, ps, nr, bam, bai
 }
 
 

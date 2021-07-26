@@ -25,6 +25,7 @@ include { gatk as gatk_1; gatk as gatk_2 } from './tasks/allele-typing/gatk'
 include { phase } from './tasks/allele-typing/phase'
 include { targeted } from './tasks/allele-typing/targeted'
 include { vep } from './tasks/allele-typing/vep'
+include { pharmvar_star_allele } from './tasks/allele-typing/pharmvar_star_allele'
 
 // check and load inputs
 manifest = parseManifestAT(params.manifest)
@@ -51,9 +52,17 @@ workflow {
 
     phase(prep_bams.out, gatk_1.out, channel.fromList(copy_num), ref)
 
-    gatk_2(phase.out.bams, amps, ref,
+    gatk_2(phase.out, amps, ref,
            ploidy: 1, qd: params.qd_2, targ: pv_vcf) |
         vep
 
-    phase.out.smry | view
+    if (pharmvar) {
+        vep.out |
+            map { it[0..1] } |
+            combine(get_pharmvar_vcf.out, by:0) |
+            map { it[0..2] } |
+            combine(Channel.fromList(pharmvar), by: 0) |
+            pharmvar_star_allele |
+            view
+    }
 }

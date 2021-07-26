@@ -42,7 +42,7 @@ ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
     assert amplicons.keySet().containsAll(amplicon_set)
     amplicons.each { k, v ->
         assert (v as Map).keySet()
-            .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
+            .containsAll(['chrom', 'start', 'end', 'strand'])
     }
     amps = amplicons
         .collect { k, v -> [k, "$v.chrom:$v.start-$v.end"] }
@@ -53,8 +53,8 @@ ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
             k, v -> [(k): v.subMap(['chrom', 'start', 'end', 'strand'])]
         } : null }
     pharmvar = amplicons
-        .collect { k, v -> [k, v.pharmvar_gene, v.pharmvar_ver] }
-        .findAll { a, g, v -> g != null & v != null }
+        .findAll {k, v -> v.pharmvar_gene != null &  v.pharmvar_ver != null }
+        .collect { k, v -> [k, v] }
 
     return [amps, fusion, pharmvar]
 }

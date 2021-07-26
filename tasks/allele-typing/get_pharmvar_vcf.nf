@@ -3,10 +3,10 @@
 process get_pharmvar_vcf {
     label 'S'
     publishDir "output", mode: params.output_pub_mode
-    tag {"$gene:$ver"}
+    tag {"${meta.pharmvar_gene}:${meta.pharmvar_ver}"}
 
     input:
-        tuple val(am), val(gene), val(ver)
+        tuple val(am), val(meta)
         tuple path(ref), path(fai), path(dict)
 
 
@@ -14,6 +14,8 @@ process get_pharmvar_vcf {
         tuple val(am), path(vcf), path("${vcf}.tbi")
 
     script:
+        gene = meta.pharmvar_gene
+        ver = meta.pharmvar_ver
         url = "https://www.pharmvar.org/get-download-file?name=$gene&refSeq=ALL&fileType=zip&version=$ver"
         vcf = "${am}.pharmvar-$gene-${ver}.vcf.gz"
         """

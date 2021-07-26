@@ -56,7 +56,7 @@ workflow prep_bams {
         map {
             lines = it.toFile().readLines()
             if (lines.size() > 1) {
-                println "Warning: ${lines.size() - 1} sample-amplicons excluded due to low read count, written to $it"
+                println "Note: ${lines.size() - 1} sample-amplicons excluded due to low read count, written to $it"
             }
         }
 

@@ -26,19 +26,6 @@ Options:
   --min-chim-prop=<f>           Minimum proportion of chimeric reads assigned to fusion for call [default: 0.25].
   --fusion-window=<f>           Window around breakpoint region for clustering [default: 10]
 "
-# opts <- '--primary LB-test-run-1.SM-NA17246.AM-CYP2D6.bam --secondary LB-test-run-1.SM-NA17246.AM-CYP2D7.bam \
-#     --amplicons \'{"CYP2D6":{"chrom":"chr22","start":42125398,"end":42131503,"strand":"-"},"CYP2D7":{"chrom":"chr22","start":42137550,"end":42145176,"strand":"-"}}\' \
-#     --seq chr22.fa \
-#     --max-reads 400 \
-#     --min-fusion-reads 5 \
-#     --min-total-prop 0.01 \
-#     --min-chim-prop 0.25 \
-#     --min-score-delta 10 \
-#     --fusion-window 10 \
-#     --out SM-NA17246.fusion_check' %>% 
-#   str_split('\\s+', simplify = T) %>% 
-#   c() %>% 
-#   docopt(doc, .)
 opts <- docopt(doc)
 
 # parse options
