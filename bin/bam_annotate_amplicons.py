@@ -186,7 +186,7 @@ if __name__ == '__main__':
                                                  'percent matched of target is recorded in PM tag in bam file.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('in_bam', help='input bam file')
-    parser.add_argument('--out', required=True, help='name of output bam file', )
+    parser.add_argument('--out', required=True, help='name of output bam file')
     parser.add_argument('--amplicons', required=True, help='json file describing input amplicons')
     parser.add_argument('--window', type=int, help='window at end of reads to search for primers', default=500)
     parser.add_argument('--max-dist', type=int, help='maximum Levenshtein distance to primer sequence for match',

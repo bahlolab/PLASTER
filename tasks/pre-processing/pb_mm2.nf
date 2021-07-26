@@ -5,16 +5,15 @@ process pb_mm2 {
     tag { "$rt:$is_bc" }
 
     input:
-        tuple val(rt), val(is_bc), val(nr), path(bam), val(ref_map), path(ref_files)
+        tuple val(rt), val(is_bc), val(nr), path(bam), path(mmi)
 
     output:
         tuple val(rt), val(is_bc), val(nr), file(aln), emit: bams
 
     script:
         aln = bam.name.replace('.bam', '.mm2.bam')
-        ref_index = rt ==~ /^CCS$/ ? ref_map['ccs.mmi'] : ref_map['subread.mmi']
         """
-        pbmm2 align $bam $ref_index tmp.bam \\
+        pbmm2 align $bam $mmi tmp.bam \\
             --num-threads $task.cpus \\
             --preset ${rt ==~ /^CCS/ ? 'CCS' : 'SUBREAD'} \\
             --best-n 1 \\

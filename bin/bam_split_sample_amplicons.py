@@ -19,9 +19,11 @@ class BamWriteThread(Thread):
 
 
 def bam_file(prefix, lb_tag, sample, amplcion, header_dict):
-    header_dict['RG'][0].update({'SM': sample, 'LB': lb_tag})
+    header_dict['RG'] = header_dict['RG'][0:1]
+    header_dict['RG'][0].update({'ID': '1', 'SM': sample, 'LB': lb_tag})
     fn = '{}LB-{}.SM-{}.AM-{}.bam'.format(prefix, lb_tag, sample, amplcion)
     return AlignmentFile(fn, 'wb', check_sq=False, header=AlignmentHeader.from_dict(header_dict))
+
 
 def get_tag(read, tag):
     try:
@@ -39,6 +41,7 @@ def main(in_bam, lb_tag, prefix):
         BamWriteThread(q).start()
         for read in af:
             if get_tag(read, 'PP') == '1':
+                read.set_tag('RG', '1')
                 sm_am = (read.get_tag('SM'), read.get_tag('AM'))
                 if sm_am not in out_bams:
                     out_bams[sm_am] = bam_file(prefix, lb_tag, *sm_am, header_dict)

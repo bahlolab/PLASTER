@@ -6,12 +6,12 @@ workflow pb_merge {
         data |
             toSortedList() |
             map { it.collect { it[1] } } |
-            pb_merge_task
+            PBM
     emit:
-        bam = merge.out.bam
+        bam = PBM.out.bam
 }
 
-process pb_merge_task {
+process PBM {
     label 'M'
     publishDir "progress/pb_merge", mode: "$params.intermediate_pub_mode"
 
