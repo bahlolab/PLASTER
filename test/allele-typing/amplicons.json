@@ -1,0 +1,18 @@
+{
+  "CYP2D6": {
+    "chrom": "chr22",
+    "start": 42125398,
+    "end": 42131503,
+    "strand": "-",
+    "fusion": "CYP2D7",
+    "pharmvar_gene": "CYP2D6",
+    "pharmvar_ver": "4.2.6.1",
+    "vep_feature":"ENST00000645361"
+  },
+  "CYP2D7": {
+    "chrom": "chr22",
+    "start": 42137550,
+    "end": 42145176,
+    "strand": "-"
+  }
+}
