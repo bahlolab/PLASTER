@@ -44,17 +44,19 @@ ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
         assert (v as Map).keySet()
             .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
     }
-    amps = amplicons.collect { k, v ->
-        [k, "$v.chrom:$v.start-$v.end"] +
-            (v.target_vcf ? [path(v.target_vcf), path(v.target_vcf + '.tbi')] : [])
-    }
+    amps = amplicons
+        .collect { k, v -> [k, "$v.chrom:$v.start-$v.end"] }
     fusion = amplicons
         .collect { k, v -> [k, v.fusion ] }
         .find { a, f -> a != f & amplicons.containsKey(f) }
         .with { it ? amplicons.subMap(it).collectEntries {
             k, v -> [(k): v.subMap(['chrom', 'start', 'end', 'strand'])]
         } : null }
-    return [amps, fusion]
+    pharmvar = amplicons
+        .collect { k, v -> [k, v.pharmvar_gene, v.pharmvar_ver] }
+        .findAll { a, g, v -> g != null & v != null }
+
+    return [amps, fusion, pharmvar]
 }
 
 ArrayList parseManifestPP(String filename) {
@@ -81,16 +83,18 @@ ArrayList<Map> parseManifestAT(String filename) {
 
 ArrayList parseCopyNum(ArrayList<Map> manifest, String filename, Integer default_cn) {
     sm_am_set = manifest.collect{[it.sample, it.amplicon]}.unique()
+    cn = []
+    missing = sm_am_set
     if (filename) {
         cn = readTSV(filename, ['sample', 'amplicon', 'copy_num'])
             .collect {
                 it.copy_num = it.copy_num as Integer
+                it.is_default = false
                 it }
             .findAll { sm_am_set.contains([it.sample, it.amplicon]) }
         missing = sm_am_set - cn.collect{[it.sample, it.amplicon]}.unique()
-        cn = cn + missing.collect { s, a -> [sample: s, amplicon: a, copy_num: default_cn] }
-    } else {
-        cn = sm_am_set.collect { s, a -> [sample: s, amplicon: a, copy_num: default_cn] }
     }
-    cn.collect { [it.amplicon, it.sample, it.copy_num] }
+    (cn + missing.collect { s, a ->
+        [sample: s, amplicon: a, copy_num: default_cn, is_default: true] })
+        .collect { [it.amplicon, it.sample, it.copy_num, it.is_default] }
 }

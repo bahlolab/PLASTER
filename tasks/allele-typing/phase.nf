@@ -5,22 +5,37 @@ workflow phase {
     take:
         bams // am, sm, nr, bam, bai
         vcfs // am, vcf, tbi
-        copy_num //am, sm, cn
+        copy_num //am, sm, cn, default
         ref // fasta, fai, dict
     main:
-        out =
-            (get_snp_pos(vcfs) |
+
+        (get_snp_pos(vcfs) |
             combine(bams, by: 0))
             .with { assign_snps(it, ref )} |
-                combine(copy_num, by: 0..1 ) |
+                combine(copy_num.map { it.take(3) }, by: 0..1 ) |
                 amp_phaser
-        phased = amp_phaser.out.phases |
+
+        phased1 = amp_phaser.out.phases |
             map { it + [
-                readTSV(it[3], ['phase', 'count', 'freq', 'ratio', 'copy_num'])
-                    .collect { it.count as int }.min() ]} |
-            branch { pass: it[4] >= params.min_reads_phased; fail: true}
+                readTSV(it[3], ['phase', 'count', 'freq', 'phase_copy_num'])
+                    .collect { [it.phase,  it.phase_copy_num, it.count as int] } ]}
+
+        phase_smry =
+            phased1 |
+            flatMap { it[4].collect { x -> it[0..1] + x[0..1] } } |
+            combine(copy_num, by:0..1) |
+            map { [it[0], it[1..5].join('\t')] } |
+            collectFile(newLine: true, storeDir: './output/',
+                seed: ['sample', 'phase', 'phase_copy_num', 'copy_num', 'is_default'].join('\t')) {
+                am, text -> ["${am}_phase_summary.tsv", text] }
+
+        phased2 = phased1 |
+            map { it[0..3] + [it[4].collect{ it[2] }.min()] } |
+            branch {
+                pass: it[4] >= params.min_reads_phased
+                fail: true }
         // write samples with too few phased reads to file
-        phased.fail |
+        phased2.fail |
             map { [it[1], it[0]].join('\t') } |
             collectFile(name: 'low_phased_read_count.tsv', storeDir: './output/', newLine: true,
                 seed: ['sample', 'amplicon'].join('\t')) |
@@ -31,7 +46,7 @@ workflow phase {
                 }
             }
 
-        out = phased.pass |
+        bams = phased2.pass |
             map { it.take(3) } |
             combine(bams, by: 0..1) |
             split_phases |
@@ -41,7 +56,8 @@ workflow phase {
                 it.takeRight(2) }
 
     emit:
-        out // am, sm, ps, nr, bam, bai
+        bams = bams // am, sm, ps, nr, bam, bai
+        smry = phase_smry // am, smry
 }
 
 
@@ -97,7 +113,7 @@ process amp_phaser {
 
     output:
         tuple val(am), val(sm), path("${pref}_phased.tsv.gz"), path("${pref}_phase_summary.tsv"), emit: phases
-        tuple val(am), val(sm), path("${pref}_phase_plot.png"), path("${pref}_read_phase_smry.tsv.gz"), emit: report
+        tuple val(am), val(sm), path("${pref}_phase_plot.png"), path("${pref}_read_state_freq.tsv.gz"), emit: report
 
     script:
     pref = "${sm}_${am}"

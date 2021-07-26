@@ -1,50 +1,47 @@
 
 workflow gatk {
     take:
-    par // ?ploidy, ?qd, ?targ
-    bams // am, sm, ?ps, nr, bam, bai
-    amps // am, reg, ?sites, ?sites_tbi
-    ref // fasta, fai, dict
+        par // ?ploidy, ?qd, ?targ (am, vcf, tbi)
+        bams // am, sm, ?ps, nr, bam, bai
+        amps // am, reg
+        ref // fasta, fai, dict
 
     main:
-    par = [ploidy:2, qd: '2.0', targ: false] + par
-    bams = bams.map { it.size() == 6 ? it : it.take(2) + [null] + it.takeRight(3) }
+        par = [ploidy:2, qd: '2.0', targ: false] + par
+        bams = bams.map { it.size() == 6 ? it : it.take(2) + [null] + it.takeRight(3) }
 
-    (amps |
-        map { it.take(2) } |
-        combine(bams, by:0))
-        .with { haplotype_caller(it, ref, par.ploidy) }
+        (amps |
+            combine(bams, by:0))
+            .with { haplotype_caller(it, ref, par.ploidy) }
 
-    (haplotype_caller.out |
-        groupTuple(by:[0,1], sort: true) |
-        map { it[[0, 1, 4, 5]] })
-        .with { genotype_gvcfs(it, ref, par.qd) }
+        (haplotype_caller.out |
+            groupTuple(by:[0,1], sort: true) |
+            map { it[[0, 1, 4, 5]] })
+            .with { genotype_gvcfs(it, ref, par.qd) }
 
-    if (par.targ) {
-        targeted =
-            genotype_gvcfs.out |
-                combine(amps, by:0) |
-                branch { yes: it.size() == 6; no: true}
+        if (par.targ) {
+            targeted =
+                genotype_gvcfs.out |
+                    join(par.targ, by:0, remainder:true) |
+                    branch { yes: it[3] != null; no: true }
 
-        (targeted.yes |
-            map{ it.take(3) + it.takeRight(2) })
-            .with { get_targ_sites(it, ref) }
+            get_targ_sites(targeted.yes, ref)
 
-        ((get_targ_sites.out | // am, sites, tbi
-            combine(amps.map { it.take(2) }, by: 0) | //am, sites, tbi, reg
-            combine(bams, by: 0)) // am, sites, tbi, reg,  sm, ps, nr, bam, bai
-            .with { call_targ_sites(it, ref, par.ploidy) } |
-            groupTuple(by: 0, sort: true) |
-            map { it[[0, 3, 4]] } |
-            combine(get_targ_sites.out, by:0) |
-            combine(genotype_gvcfs.out, by:0))
-            .with { merge_targ_sites(it, ref) }
-        out = targeted.no |
-            map {it.take(3) } |
-            mix(merge_targ_sites.out)
-    } else {
-        out = genotype_gvcfs.out
-    }
+            ((get_targ_sites.out | // am, sites, tbi
+                combine(amps, by: 0) | //am, sites, tbi, reg
+                combine(bams, by: 0)) // am, sites, tbi, reg,  sm, ps, nr, bam, bai
+                .with { call_targ_sites(it, ref, par.ploidy) } |
+                groupTuple(by: 0, sort: true) |
+                map { it[[0, 3, 4]] } |
+                combine(get_targ_sites.out, by:0) |
+                combine(genotype_gvcfs.out, by:0))
+                .with { merge_targ_sites(it, ref) }
+            out = targeted.no |
+                map {it.take(3) } |
+                mix(merge_targ_sites.out)
+        } else {
+            out = genotype_gvcfs.out
+        }
     emit:
         out//am, vcf, tbi
 }
@@ -55,16 +52,16 @@ process haplotype_caller {
     tag { "$sm:$am:$ps" }
 
     input:
-    tuple val(am), val(reg), val(sm), val(ps), val(nr), path(bam), path(bai)
-    tuple path(ref), path(fai), path(dict)
-    val(ploidy)
+        tuple val(am), val(reg), val(sm), val(ps), val(nr), path(bam), path(bai)
+        tuple path(ref), path(fai), path(dict)
+        val(ploidy)
 
     output:
-    tuple val(am), val(reg), val(sm), val(ps), path(gvcf), path("${gvcf}.tbi")
+        tuple val(am), val(reg), val(sm), val(ps), path(gvcf), path("${gvcf}.tbi")
 
     script:
-    gvcf = "SM-${sm}.AM-${am}" + (ps ? ".PS-${ps}" : '') + ".gvcf.gz"
-    """
+        gvcf = "SM-${sm}.AM-${am}" + (ps ? ".PS-${ps}" : '') + ".gvcf.gz"
+        """
         gatk HaplotypeCaller \\
             --java-options "-Xmx5G -Djava.io.tmpdir=." \\
             -R $ref \\
@@ -134,12 +131,10 @@ process get_targ_sites {
     script:
         out = "${am}.absent.vcf.gz"
         """
-        bcftools norm -m-any -f $ref $sites -Oz -o sites.norm.vcf.gz
-        bcftools index -t sites.norm.vcf.gz
         bcftools view -G -Ou $vcf |
             bcftools norm -m-any -f $ref -Oz -o calls.norm.vcf.gz
         bcftools index -t calls.norm.vcf.gz
-        bcftools isec sites.norm.vcf.gz calls.norm.vcf.gz -C -w 1 -Ou |
+        bcftools isec $sites calls.norm.vcf.gz -C -w 1 -Ou |
             bcftools norm -m+any -f $ref -Oz -o $out
         bcftools index -t $out
         """
@@ -197,7 +192,7 @@ process merge_targ_sites {
         bcftools index -t sites.norm.vcf.gz
         bcftools isec merged.vcf.gz sites.norm.vcf.gz -p isec -Oz -w 1
         bcftools concat -a isec/0002.vcf.gz $disc -D -Ou |
-            bcftools norm -m+any -f $ref -D -Oz -o $out
+            bcftools norm -m-any -f $ref -Oz -o $out
         bcftools index -t $out
         """
 }

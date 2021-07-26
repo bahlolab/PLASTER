@@ -244,9 +244,13 @@ chim_bp_tbl %>%
   filter(!is.na(type)) %>%
   unchop(qname) %>% 
   select(type, ref, qname) %>% 
-  nest(data = -type) %>% 
+  nest(data = -type) %>%  
+  complete(type = str_c('clean-', types[c('A', 'B')])) %>% 
   mutate(bam_file = map2_chr(type, data, function(type, data) {
     dest_file <- str_c(out_prefix, type, 'bam', sep = '.')
+    if (is.null(data)) {
+      data <- tibble(ref = bam_tbl$ref[1], qname = NA_character_)
+    }
     filter <- FilterRules(list(qn = function(read) {read$qname %in% data$qname}))
     if (n_distinct(data$ref) > 1) {
       tmp_bams <-
@@ -258,18 +262,19 @@ chim_bp_tbl %>%
           }
           filterBam(file, tempfile(pattern = 'tmp_', tmpdir = '.', fileext = '.bam'), filter = filter)
         })
-      mergeBam(tmp_bams, dest_file, overwrite = TRUE)
-      file.remove(tmp_bams)
+      mergeBam(tmp_bams, dest_file, overwrite = TRUE, indexDestination=TRUE)
+      file.remove(tmp_bams, str_c(tmp_bams, ".bai"))
     } else {
       file <- filter(bam_tbl, ref == data$ref[1]) %>% pull(file)
       if (!file.exists(str_c(file, '.bai'))) {
         indexBam(file)
       }
-      filterBam(file, dest_file, filter = filter)
+      filterBam(file, dest_file, filter = filter, indexDestination=TRUE)
     }
+    write(sum(idxstatsBam(dest_file)$mapped), str_c(dest_file, ".count"))
     return(dest_file)
   })) %>% 
-  mutate(n_reads = map_int(data, nrow)) %>% 
+  mutate(n_reads = map_int(data, ~ `if`(is.null(.), 0L, nrow(.)))) %>% 
   select(-data) %>% 
   write_csv(str_c(out_prefix, '.fus_smry.csv'))
 

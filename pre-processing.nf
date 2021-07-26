@@ -6,8 +6,6 @@ wf_name = "PLASTER: pre-processing"
 println "\n------- $wf_name -------\n"
 
 // default params
-params.intermediate_pub_mode = 'symlink'
-params.output_pub_mode = 'copy'
 params.run_id = "plaster-run"
 params.ccs_min_len = 250
 params.ccs_max_len = 25000
