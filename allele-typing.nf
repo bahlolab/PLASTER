@@ -62,7 +62,6 @@ workflow {
             combine(get_pharmvar_vcf.out, by:0) |
             map { it[0..2] } |
             combine(Channel.fromList(pharmvar), by: 0) |
-            pharmvar_star_allele |
-            view
+            pharmvar_star_allele
     }
 }

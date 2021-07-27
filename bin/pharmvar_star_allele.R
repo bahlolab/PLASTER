@@ -243,7 +243,9 @@ sample_phase_match <-
       pv_alleles %>%
       filter(is_core) %>%
       filter(map_lgl(vid, function(x) all(x %in% vs))) %>%
-      arrange(`function`, as.numeric(core_id)) %>% 
+      arrange(`function`,
+              desc(lengths(vid)),
+              as.numeric(core_id)) %>% 
       slice(1) %>%
       pull(core_id) %>%
       { `if`(length(.) == 0, '1', .)}

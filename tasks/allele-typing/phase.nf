@@ -27,7 +27,7 @@ workflow phase {
             map { [it[0], it[1..5].join('\t')] } |
             collectFile(newLine: true, storeDir: './output/',
                 seed: ['sample', 'phase', 'phase_copy_num', 'copy_num', 'is_default'].join('\t')) {
-                am, text -> ["${am}_phase_summary.tsv", text] }
+                am, text -> ["${am}.phase_summary.tsv", text] }
 
         phased2 = phased1 |
             map { it[0..3] + [it[4].collect{ it[2] }.min()] } |
