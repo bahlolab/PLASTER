@@ -1,14 +1,31 @@
 # **PLASTER**: Phased Long Allele Sequence Typing with Error Removal
 
+## Pipeline Overview
+<p align="center"><img src="images/diagram.png"/></p>
+
 ## Installation
 
-* TBD
+* Make sure Nextflow and Singularity or Docker are installed on your system
+* Clone this repository
 
-## Pipeline Stages
+## Usage
 
-### 1) Pre-processing
+* Pre-processing
+  ```
+  mkdir pre-proc-test && cd pre-proc-test
+  nextflow run ~/PLASTER/pre-processing.nf -profile slurm,singularity -c ~/PLASTER/test/pre-processing.config
+  ```
 
-<p align="center"><img src="images/pre-processing.png"/></p>
+* Allele-typing
+  ```
+  mkdir allele-typing-test && cd allele-typing-test
+  nextflow run ~/PLASTER/allele-typing.nf -profile slurm,singularity -c ~/PLASTER/test/allele-typing.config
+  ```
+* The above commands specify the test dataset configs. You will need to create your own config file to for your dataset, using this as a guide
+
+### Details
+
+#### Pre-processing
 
 1. **Consensus**  
 Circular consensus sequences are produced using PacBio's CCS tool with the recommend minimum 3 passes and minimum 0.99 accuracy.  
@@ -26,15 +43,7 @@ BAM files are realigned after trimming
 Monolithic CCS BAM file is split into separate BAM files for each unique sample target amplicon  
 
 
-### 2) Fusion Calling  
-    
-**Note:** (optional, CYP2D6 only)  
-
-1. TBD  
-
-### 3) Allele-typing
-
-<p align="center"><img src="images/allele-typing.png"/></p>
+#### Allele-typing
 
 1. **Call SNPs**  
 GATK HaplotypeCaller is used to generate SNV calls in diploid mode for each sample-amplicon.  
@@ -52,10 +61,5 @@ SVs are jointly called using 'pbsv discover' and 'pbsv call'. This tools only pr
 All calls are merged into a single VCF, with haploid sample phases merged into phased diploid calls.  
 1. **Annotate Variants**  
 Ensembl VEP is used to provided annotations including reference population allele frequencies and variant effect predictions.  
-1. **Generate Report**  
-An html report summarise variant calls for each amplicon is generated based on an Rmarkdown script. See example variant report.  
 
-### 4) Star Allele Assignment (CYP2D6 only)  
 
-**Note:** (CYP2D6 only)  
-1. TBD  
