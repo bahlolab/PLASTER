@@ -2,7 +2,7 @@
 
 process get_pharmvar_vcf {
     label 'S'
-    publishDir "output", mode: params.output_pub_mode
+    publishDir "progress/get_pharmvar_vcf",  mode: params.intermediate_pub_mode
     tag {"${meta.pharmvar_gene}:${meta.pharmvar_ver}"}
 
     input:
