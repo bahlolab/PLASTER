@@ -1,5 +1,7 @@
 # **PLASTER**: Phased Long Allele Sequence Typing with Error Removal
 
+PLASTER is a comprehensive data processing pipeline for allele typing from long amplicon sequencing data generated on the PacBio SMRT platform. Inputs are pacbio subreads in BAM format, as well as sample barcodes and target amplicon details. Outputs are phased BAMs for each sample amplicon and variant calls in VCF format. Additionally the pipeline supports Pharmacogenomic star alelle assignment using the PharmVar database, and gene fusion detection for CYP2D6 and CYP2D7 fusion alleles.
+
 ## Pipeline Overview
 <p align="center"><img src="images/diagram.png"/></p>
 
@@ -10,13 +12,13 @@
 
 ## Usage
 
-* Pre-processing
+* **Pre-processing**
   ```
   mkdir pre-proc-test && cd pre-proc-test
   nextflow run ~/PLASTER/pre-processing.nf -profile slurm,singularity -c ~/PLASTER/test/pre-processing.config
   ```
 
-* Allele-typing
+* **Allele-typing**
   ```
   mkdir allele-typing-test && cd allele-typing-test
   nextflow run ~/PLASTER/allele-typing.nf -profile slurm,singularity -c ~/PLASTER/test/allele-typing.config
