@@ -27,8 +27,7 @@ include { pharmvar_star_allele } from './typing/pharmvar_star_allele'
 // main workflow
 workflow typing {
 
-    println "\n------- PLASTER: typing -------\n"
-    if (params.test) { println "Running test dataset" }
+    println "\n------- PLASTER: allele-typing -------\n${params.test ? 'Running test dataset' : ''}"
 
     // check and load inputs
     manifest = parseManifestAT(params.manifest)
@@ -46,7 +45,7 @@ workflow typing {
     amps = Channel.fromList(amplicons)
 
     (Channel.fromList(manifest) |
-        map { (it.values() as ArrayList)[1..4] })
+        map { (it.values() as ArrayList)[0..3] })
         .with { prep_bams (it, ref, fusion)}
 
     gatk_1(prep_bams.out, amps.map{ it.take(2) }, ref,

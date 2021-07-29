@@ -30,8 +30,7 @@ include { pre_processing_report } from './preproc/pre_processing_report'
 // main workflow
 workflow preproc {
 
-    println "\n------- PLASTER: preproc -------\n"
-    if (params.test) { println "Running test dataset" }
+    println "\n------- PLASTER: pre-processing -------\n${params.test ? 'Running test dataset' : ''}"
 
     // check and load inputs
     subreads_bam = path(params.subreads_bam)
