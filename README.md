@@ -7,8 +7,12 @@ PLASTER is a comprehensive data processing pipeline for allele typing from long 
 
 ## Installation
 
-* Make sure Nextflow and Singularity or Docker are installed on your system
-* Clone this repository
+* Make sure [Nextflow](https://nextflow.io/) and either [Singularity](https://sylabs.io/guides/3.0/user-guide/index.html) or [Docker](https://www.docker.com/) are installed on your system
+* Clone this repository, e.g. into your home directory
+  ```
+  cd ~ 
+  git clone https://github.com/bahlolab/PLASTER.git
+  ```
 
 ## Usage
 
