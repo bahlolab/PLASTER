@@ -1,5 +1,5 @@
 
-include { readTSV } from '../../functions'
+include { readTSV } from '../functions'
 
 workflow phase {
     take:

@@ -2,9 +2,6 @@
 
 nextflow.enable.dsl=2
 
-wf_name = "PLASTER: allele-typing"
-println "\n------- $wf_name -------\n"
-
 // default params
 params.max_reads = 1000
 params.min_reads = 20
@@ -18,23 +15,27 @@ params.vep_assembly = 'GRCh38'
 
 // import functions and tasks
 include { path; parseManifestAT; checkManiAmpsAT; parseCopyNum; readTSV } from './functions'
-include { prep_ref } from './tasks/prep_ref'
-include { get_pharmvar_vcf } from './tasks/allele-typing/get_pharmvar_vcf'
-include { prep_bams } from './tasks/allele-typing/prep_bams'
-include { gatk as gatk_1; gatk as gatk_2 } from './tasks/allele-typing/gatk'
-include { phase } from './tasks/allele-typing/phase'
-include { targeted } from './tasks/allele-typing/targeted'
-include { vep } from './tasks/allele-typing/vep'
-include { pharmvar_star_allele } from './tasks/allele-typing/pharmvar_star_allele'
-
-// check and load inputs
-manifest = parseManifestAT(params.manifest)
-amplicons_json = path(params.amplicons_json)
-(amplicons, fusion, pharmvar) = checkManiAmpsAT(manifest.collect{it.amplicon}.unique(), amplicons_json)
-copy_num = parseCopyNum(manifest, params.copy_num, params.ploidy)
+include { prep_ref } from './prep_ref'
+include { get_pharmvar_vcf } from './typing/get_pharmvar_vcf'
+include { prep_bams } from './typing/prep_bams'
+include { gatk as gatk_1; gatk as gatk_2 } from './typing/gatk'
+include { phase } from './typing/phase'
+include { targeted } from './typing/targeted'
+include { vep } from './typing/vep'
+include { pharmvar_star_allele } from './typing/pharmvar_star_allele'
 
 // main workflow
-workflow {
+workflow typing {
+
+    println "\n------- PLASTER: allele-typing -------\n${params.test ? 'Running test dataset' : ''}"
+
+    // check and load inputs
+    manifest = parseManifestAT(params.manifest)
+    amplicons_json = path(params.amplicons_json)
+    (amplicons, fusion, pharmvar) = checkManiAmpsAT(manifest.collect{it.amplicon}.unique(), amplicons_json)
+    copy_num = parseCopyNum(manifest, params.copy_num, params.ploidy)
+
+    // run tasks
     ref = prep_ref(params.ref_fasta, 'fai')
 
     pv_vcf = pharmvar ?
@@ -44,7 +45,7 @@ workflow {
     amps = Channel.fromList(amplicons)
 
     (Channel.fromList(manifest) |
-        map { (it.values() as ArrayList)[1..4] })
+        map { (it.values() as ArrayList)[0..3] })
         .with { prep_bams (it, ref, fusion)}
 
     gatk_1(prep_bams.out, amps.map{ it.take(2) }, ref,

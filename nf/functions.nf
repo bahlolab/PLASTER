@@ -74,7 +74,7 @@ ArrayList parseManifestPP(String filename) {
 }
 
 ArrayList<Map> parseManifestAT(String filename) {
-    readTSV(filename, ['run_id', 'sample', 'amplicon', 'n_reads', 'bam_file'])
+    readTSV(filename, ['sample', 'amplicon', 'n_reads', 'bam_file'])
         .collect {
             it.n_reads = it.n_reads as Integer
             it.bam_file = path(it.bam_file)
