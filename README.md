@@ -2,32 +2,77 @@
 
 PLASTER is a comprehensive data processing pipeline for allele typing from long amplicon sequencing data generated on the PacBio SMRT platform. Inputs are pacbio subreads in BAM format, as well as sample barcodes and target amplicon details. Outputs are phased BAMs for each sample amplicon and variant calls in VCF format. Additionally the pipeline supports Pharmacogenomic star alelle assignment using the PharmVar database, and gene fusion detection for CYP2D6 and CYP2D7 fusion alleles.
 
+The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to run tasks across multiple compute infrastructures in a  portable and efficient manner. Included is a [Docker](https://www.docker.com/) container, making installation trivial and results highly reproducible. 
+
 ## Pipeline Overview
 <p align="center"><img src="images/diagram.png"/></p>
 
-## Installation
+## Prerequisites
 
 * Make sure [Nextflow](https://nextflow.io/) and either [Singularity](https://sylabs.io/guides/3.0/user-guide/index.html) or [Docker](https://www.docker.com/) are installed on your system
-* Clone this repository, e.g. into your home directory
-  ```
-  cd ~ 
-  git clone https://github.com/bahlolab/PLASTER.git
-  ```
 
 ## Usage
 
-* **Pre-processing**
+#### Pre-processing
+
+* **Running the test dataset**
   ```
-  mkdir pre-proc-test && cd pre-proc-test
-  nextflow run ~/PLASTER/pre-processing.nf -profile slurm,singularity -c ~/PLASTER/test/pre-processing.config
+  nextflow run bahlolab/PLASTER -profile preproc,test,singularity
+  ```
+  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead.
+* **Running your own dataset**
+  ```
+  nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config>
+  ```
+  where `my_dataset.config` is a file specifying the following required parameters:
+  ```Nextflow
+  params {
+    run_id = 'my-dataset'
+    subreads_bam = '/PATH/TO/MY/subreads.bam'
+    sample_manifest = '/PATH/TO/MY/sample-manifest.tsv'
+    amplicons_json = '/PATH/TO/MY/amplicons.json'
+    barcodes_fasta = '/PATH/TO/MY/barcodes.fasta'
+    ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
+  }
+  ```
+  and `sample_manifest` is a TSV file with the following format:
+  ```
+  sample	barcode	amplicons
+  NA07439	BC04	CYP2D6;CYP2D7
+  NA10005	BC22	CYP2D6;CYP2D7
+  NA17203	BC59	CYP2D6;CYP2D7
+  ...  ...  ...
+  ```
+  and `amplicons_json` is a JSON file with the following format:
+  ```JSON
+  {
+    "CYP2D6": {
+      "chrom": "chr22",
+      "start": 42125398,
+      "end": 42131503,
+      "strand": "-",
+      "fwd_primer": "TGTGAATATTGTCTTTGTGTGGGTG",
+      "rvs_primer": "CAGGACTCAGGTAATCATATGCTCA"
+    },
+    "CYP2D7": {
+      "chrom": "chr22",
+      "start": 42137550,
+      "end": 42145176,
+      "strand": "-",
+      "fwd_primer": "TGTGAATATTGTCTTTGTGTGGGTG",
+      "rvs_primer": "CAGGACTCAGGTAATCATATGCTCA"
+    }
+  }
   ```
 
-* **Allele-typing**
+#### Allele-typing
+
+* **Running the test dataset**
   ```
-  mkdir allele-typing-test && cd allele-typing-test
-  nextflow run ~/PLASTER/allele-typing.nf -profile slurm,singularity -c ~/PLASTER/test/allele-typing.config
+  nextflow run bahlolab/PLASTER -profile typing,test,singularity
   ```
-* The above commands specify the test dataset configs. You will need to create your own config file to for your dataset, using this as a guide
+  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead.
+
 
 ### Details
 

@@ -1,5 +1,5 @@
 ---
-title: "PLASTER: pre-processing report"
+title: "PLASTER: preproc report"
 date: "`r date()`"
 output: 
   html_document:
