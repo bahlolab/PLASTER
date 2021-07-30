@@ -1,4 +1,4 @@
-#### Pre-processing Parameters
+### Pre-processing Parameters
 
 * **subreads_bam (required)**  
   Path to a PacBio subreads BAM file with corresponding `.pbi` index file, output from a sequel I/II machine.
@@ -35,3 +35,16 @@
     }
   }
   ```
+* **run_id (optional, default: "preproc-run")**  
+  Identifier used for naming output files.
+* **ccs_min_passes (optional, default: 3)**  
+  `--min-passes ` parameter passed to PacBio `ccs`.
+* **ccs_min_acc (optional, default: 0.99)**  
+  `--min-snr` parameter passed to PacBio `ccs`.
+* **ccs_min_len (optional, default: 250)**  
+  `--min-length` parameter passed to PacBio `ccs`.
+* **ccs_max_len (optional, default: 25000)**  
+  `--max-length` parameter passed to PacBio `ccs`.
+* **ccs_n_parallel (optional, default: 100)**  
+  Number of parallel jobs to run for PacBio `ccs`.
+  

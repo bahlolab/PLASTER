@@ -13,7 +13,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 
 ## Usage
 
-#### Pre-processing
+### Pre-processing
 
 * **Running the test dataset**
   ```
@@ -35,7 +35,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   See [Pre-processing Parameters](doc/preproc.md) from more details
 
-#### Allele-typing
+### Allele-typing
 
 * **Running the test dataset**
   ```
@@ -49,42 +49,11 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   where `my_dataset.config` is a file specifying the following required parameters:
   ```Nextflow
   params {
-    manifest = '@PROJECT_DIR@/test/typing/manifest.tsv'
+    manifest = '@PROJECT_DIR@/test/typing/manifest.csv'
     amplicons_json = '@PROJECT_DIR@/test/typing/amplicons.json'
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
-    vep_cache_ver = '104'
-    vep_assembly = 'GRCh38'
   }
   ```
-  and `manifest` is a TSV file, output from the pre-processing stage, with the following format:
-  ```
-  sample	amplicon	n_reads	bam_file
-  NA07439	CYP2D6	218	/PATH/TO/SM-NA07439.AM-CYP2D6.bam
-  NA07439	CYP2D6	151	/PATH/TO/SM-NA07439.AM-CYP2D6.bam
-  NA07439	CYP2D7	14	/PATH/TO/SM-NA07439.AM-CYP2D7.bam
-  ...  ...  ...  ...
-  ```
-  and `amplicons_json` is a JSON file with the following format (note that "fusion", "pharmvar", and "vep_feature" are optional):
-  ```JSON
-  {
-    "CYP2D6": {
-      "chrom": "chr22",
-      "start": 42125398,
-      "end": 42131503,
-      "strand": "-",
-      "fusion": "CYP2D7",
-      "pharmvar_gene": "CYP2D6",
-      "pharmvar_ver": "4.2.6.1",
-      "vep_feature":"ENST00000645361"
-    },
-    "CYP2D7": {
-      "chrom": "chr22",
-      "start": 42137550,
-      "end": 42145176,
-      "strand": "-",
-    }
-  }
-  ```
-
+  See [Allele-typing Parameters](doc/typing.md) from more details
 
 
