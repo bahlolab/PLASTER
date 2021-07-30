@@ -1,7 +1,7 @@
 import groovy.json.JsonSlurper
 import java.nio.file.Path
 
-Path path(String filename) {
+Path path(filename) {
     file(filename.replaceAll(/^@PROJECT_DIR@/, workflow.projectDir.toString()),
         checkIfExists: true)
 }
@@ -19,24 +19,30 @@ ArrayList<Map> readTSV(Object file, List<String> colnames) {
         }
 }
 
-void checkManiAmps(Path manifest_tsv, Path amplicons_json) {
-    // check manifest
-    def manifest_lines = manifest_tsv.toFile().readLines().drop(1) as ArrayList
-    assert manifest_lines.size() > 0
-    manifest_lines.each { assert it.split('\t').size() == 3 }
-    def manifest_amp_set = manifest_lines
-        .collect { it.split('\t')[2].split(';') }
-        .flatten().unique().sort()
-    // check amplicons
-    def amplicons = (new JsonSlurper().parse(amplicons_json.toFile())) as Map
-    assert amplicons.keySet().containsAll(manifest_amp_set)
+ArrayList<Map> readCSV(Object file, List<String> colnames) {
+    lines = file instanceof Path ?
+        file.toFile().readLines() :
+        path(file).toFile().readLines()
+    assert colnames == lines[0].split(',')
+    lines.each {assert it.split(',').size() == colnames.size() }
+    lines.drop(1)
+        .collect {it.split(',') }
+        .collect {
+            [colnames, it].transpose().collectEntries { k, v -> [(k): v] }
+        }
+}
+
+Path checkAmps(String amplicons_json) {
+    amplicons_path = path(amplicons_json)
+    amplicons = (new JsonSlurper().parse(amplicons_path.toFile())) as Map
     amplicons.each { k, v ->
         assert (v as Map).keySet()
             .containsAll(['chrom', 'start', 'end', 'strand', 'fwd_primer', 'rvs_primer'])
     }
+    amplicons_path
 }
 
-ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
+ArrayList checkManiAmps(ArrayList amplicon_set, Path amplicons_json) {
     // check amplicons
     def amplicons = (new JsonSlurper().parse(amplicons_json.toFile())) as Map
     assert amplicons.keySet().containsAll(amplicon_set)
@@ -59,22 +65,9 @@ ArrayList checkManiAmpsAT(ArrayList amplicon_set, Path amplicons_json) {
     return [amps, fusion, pharmvar]
 }
 
-ArrayList parseManifestPP(String filename) {
-    header = ['sample', 'barcode', 'amplicons']
-    manifest_path = path(filename)
-    manifest = manifest_path.toFile().readLines()
-        .with { lines ->
-            assert header == lines[0].split('\t')
-            lines.each {assert it.split('\t').size() == header.size() }
-            lines.drop(1).collect {
-                [header, it.split('\t')].transpose().collectEntries { k, v -> [(k): v] } } }
-        .collect {
-            it.amplicons = it.amplicons.split(';')
-            it }
-}
 
-ArrayList<Map> parseManifestAT(String filename) {
-    readTSV(filename, ['sample', 'amplicon', 'n_reads', 'bam_file'])
+ArrayList<Map> parseManifest(String filename) {
+    readCSV(filename, ['sample', 'amplicon', 'n_reads', 'bam_file'])
         .collect {
             it.n_reads = it.n_reads as Integer
             it.bam_file = path(it.bam_file)
@@ -86,7 +79,7 @@ ArrayList parseCopyNum(ArrayList<Map> manifest, String filename, Integer default
     cn = []
     missing = sm_am_set
     if (filename) {
-        cn = readTSV(filename, ['sample', 'amplicon', 'copy_num'])
+        cn = readCSV(filename, ['sample', 'amplicon', 'copy_num'])
             .collect {
                 it.copy_num = it.copy_num as Integer
                 it.is_default = false

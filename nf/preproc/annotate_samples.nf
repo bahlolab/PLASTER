@@ -16,7 +16,7 @@ process AS {
     tag { "$rt:$is_bc" }
 
     input:
-        tuple val(rt), val(is_bc), val(nr), path(bam), path(bc_order), path(manifest)
+        tuple val(rt), val(is_bc), val(nr), path(bam), path(barcodes_fa)
 
     output:
         tuple val(rt), val(is_bc), val(nr), path(out), emit: bams
@@ -25,6 +25,8 @@ process AS {
         out = params.run_id + '.' + rt + '.sm_annot.bam'
         """
         samtools view -u $bam |
-            bam_annotate_samples.py - --manifest $manifest --bc-order $bc_order --out $out
+            bam_annotate_samples.py - \\
+                --barcodes $barcodes_fa \\
+                --out $out
         """
 }

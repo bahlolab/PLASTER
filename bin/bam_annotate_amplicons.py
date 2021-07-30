@@ -26,19 +26,6 @@ class BamWriteThread(Thread):
             self.q.task_done()
 
 
-def parse_manifest(manifest):
-    smbc_amps = {}
-    all_amps = set()
-    with open(manifest, 'rt') as handler:
-        reader = csv.reader(handler, dialect=csv.excel_tab)
-        assert next(reader) == ['sample', 'barcode', 'amplicons']
-        for sample, barcode, amplicons in reader:
-            amps = amplicons.split(';')
-            smbc_amps[(sample, barcode)] = amps
-            all_amps.update(amps)
-    return smbc_amps, all_amps
-
-
 def match_pattern(subject, pattern, max_dist=1, refine=True):
     """
     returns the start and end position leftmost best match less within levenstein distance of max_dist, or None
@@ -116,9 +103,8 @@ def trim_primers(read, match, is_fwd, inclusive=True):
     return read
 
 
-def main(in_bam, amp_json, manifest, window, max_dist, out):
+def main(in_bam, amp_json, window, max_dist, out):
     amp_dict = parse_amplicons_json(amp_json)
-    smbc_amps, all_amps = parse_manifest(manifest)
     with AlignmentFile(in_bam, 'rb', check_sq=False) as af:
         q = Queue(5)
         af_out = AlignmentFile(out, 'wb', check_sq=False, header=af.header)
@@ -127,12 +113,8 @@ def main(in_bam, amp_json, manifest, window, max_dist, out):
             if read.is_unmapped:
                 read.set_tag('AM', 'unmapped')
             else:
-                if read.has_tag('SM') and read.has_tag('BC'):
-                    amp_set = smbc_amps[(read.get_tag('SM'), read.get_tag('BC'))]
-                else:
-                    amp_set = all_amps
                 matches = []
-                for amp in [amp_dict[a] for a in amp_set]:
+                for amp in amp_dict.values():
                     if read.reference_name != amp['chrom']:
                         continue
                     ol = overlap(read.reference_start, read.reference_end, amp['start'], amp['end'])
@@ -191,8 +173,5 @@ if __name__ == '__main__':
     parser.add_argument('--window', type=int, help='window at end of reads to search for primers', default=500)
     parser.add_argument('--max-dist', type=int, help='maximum Levenshtein distance to primer sequence for match',
                         default=2)
-    parser.add_argument('--manifest', required=True,
-                        help='Tab delimited file with sample names in first column, barcode in second. '
-                             'First row is header.')
     args = parser.parse_args()
-    main(args.in_bam, args.amplicons, args.manifest, args.window, args.max_dist, args.out)
+    main(args.in_bam, args.amplicons, args.window, args.max_dist, args.out)

@@ -6,7 +6,7 @@ process annotate_amplicons {
     tag { "$rt:$is_bc" }
 
     input:
-        tuple val(rt), val(is_bc), val(nr), path(bam), path(amplicons), path(manifest)
+        tuple val(rt), val(is_bc), val(nr), path(bam), path(amplicons)
 
     output:
         tuple val(rt), val(is_bc), val(nr), path(out), emit: bams
@@ -15,7 +15,10 @@ process annotate_amplicons {
         out = "$params.run_id.$rt.${is_bc}.sm_am_annot.bam"
         """
         samtools view -u $bam |
-            bam_annotate_amplicons.py - --window 500 --max-dist 2 \\
-                --manifest $manifest --amplicons $amplicons --out $out
+            bam_annotate_amplicons.py - \\
+                --window 500 \\
+                --max-dist 2 \\
+                --amplicons $amplicons \\
+                --out $out
         """
 }
