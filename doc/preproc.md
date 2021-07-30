@@ -1,10 +1,10 @@
 ### Pre-processing Parameters
 
-* **subreads_bam (required)**  
+* **`subreads_bam` (required)**  
   Path to a PacBio subreads BAM file with corresponding `.pbi` index file, output from a sequel I/II machine.
-* **ref_fasta (required)**  
+* **`ref_fasta` (required)**  
   Path to a FASTA file to be used as the reference genome. Also supports FTP and HTTP(S) if prefixed appropriately (i.e., with `'ftp://'`, `'http://'` or `'https://'`). 
-* **barcodes_fasta (required)**  
+* **`barcodes_fasta` (required)**  
   Path to a FASTA file containing barcode sequences and samples names, e.g.:
   ```
   >NA07439
@@ -13,7 +13,7 @@
   ACACGCATGACACACT
   ...
   ```
-* **amplicons_json (required)**  
+* **`amplicons_json` (required)**  
   Path to a JSON file describing target amplicons with the following format:
   ```JSON
   {
@@ -35,16 +35,16 @@
     }
   }
   ```
-* **run_id (optional, default: "preproc-run")**  
+* **`run_id` (optional, default: "preproc-run")**  
   Identifier used for naming output files.
-* **ccs_min_passes (optional, default: 3)**  
-  `--min-passes ` parameter passed to PacBio `ccs`.
-* **ccs_min_acc (optional, default: 0.99)**  
-  `--min-snr` parameter passed to PacBio `ccs`.
-* **ccs_min_len (optional, default: 250)**  
-  `--min-length` parameter passed to PacBio `ccs`.
-* **ccs_max_len (optional, default: 25000)**  
-  `--max-length` parameter passed to PacBio `ccs`.
-* **ccs_n_parallel (optional, default: 100)**  
+* **`ccs_min_passes` (optional, default: 3)**  
+  Parameter passed to PacBio ccs as `--min-passes`.
+* **`ccs_min_acc` (optional, default: 0.99)**  
+  Parameter passed to PacBio ccs as `--min-snr`.
+* **`ccs_min_len` (optional, default: 250)**  
+  Parameter passed to PacBio ccs as `--min-length`.
+* **`ccs_max_len` (optional, default: 25000)**  
+  Parameter passed to PacBio ccs as `--max-length`.
+* **c`cs_n_parallel` (optional, default: 100)**  
   Number of parallel jobs to run for PacBio `ccs`.
   

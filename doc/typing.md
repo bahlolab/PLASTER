@@ -1,7 +1,7 @@
 #### Allele-typing Parameters
 
 * **`ref_fasta` (required)**  
-  Path to a FASTA file to be used as the reference genome. Also supports FTP and HTTP(S) if prefixed appropriately (i.e., with `'ftp://'`, `'http://'` or `'https://'`). 
+  Path to a FASTA file to be used as the reference genome. Also supports FTP and HTTP(S) if prefixed appropriately (i.e., with 'ftp://', 'http://' or 'https://'). 
 * **`manifest` (required)**  
   Path to a CSV file, output from the pre-processing stage, with the following format:
   ```
@@ -59,8 +59,8 @@
 * **`qd_2` (optional, default: '20.0')**  
   Minimum GATK QD (QualByDepth) for phased genotyping. This is stricter as input read quality should be much higher.
 * **`vep_assembly` (optional, default: null)**  
-  `--assembly` parameter passed to Ensembl `VEP`. Only used if `vep_cache_ver` also specified.
+  Parameter passed to Ensembl VEP as `--assembly`. Only used if `vep_cache_ver` also specified.
 * **`vep_cache_ver` (optional, default: null)**  
-  `--cache_version` parameter passed to Ensembl `VEP`. Only used if `vep_assembly` also specified.
+  Parameter passed to Ensembl VEP as `--cache_version`. Only used if `vep_assembly` also specified.
 
   
