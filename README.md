@@ -27,14 +27,13 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   where `my_dataset.config` is a Nextflow config file specifying the following required parameters:
   ```Nextflow
   params {
-    run_id = 'my-dataset'
     subreads_bam = '/PATH/TO/MY/subreads.bam'
     barcodes_fasta = '/PATH/TO/MY/barcodes.fasta'
     amplicons_json = '/PATH/TO/MY/amplicons.json'
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  See [Allele-typing Parameters](doc/allelle_typing.md) from more details
+  See [Pre-processing Parameters](doc/preproc.md) from more details
 
 #### Allele-typing
 
