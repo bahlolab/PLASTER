@@ -5,7 +5,7 @@ PLASTER is a comprehensive data processing pipeline for allele typing from long 
 The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to run tasks across multiple compute infrastructures in a  portable and efficient manner. Included is a [Docker](https://www.docker.com/) container, making installation trivial and results highly reproducible. 
 
 ## Pipeline Overview
-<p align="center"><img src="images/diagram.png"/></p>
+<p align="center"><img src="doc/diagram.png"/></p>
 
 ## Prerequisites
 
@@ -24,46 +24,17 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config>
   ```
-  where `my_dataset.config` is a file specifying the following required parameters:
+  where `my_dataset.config` is a Nextflow config file specifying the following required parameters:
   ```Nextflow
   params {
     run_id = 'my-dataset'
     subreads_bam = '/PATH/TO/MY/subreads.bam'
-    sample_manifest = '/PATH/TO/MY/sample-manifest.tsv'
-    amplicons_json = '/PATH/TO/MY/amplicons.json'
     barcodes_fasta = '/PATH/TO/MY/barcodes.fasta'
+    amplicons_json = '/PATH/TO/MY/amplicons.json'
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  and `sample_manifest` is a TSV file with the following format:
-  ```
-  sample	barcode	amplicons
-  NA07439	BC04	CYP2D6;CYP2D7
-  NA10005	BC22	CYP2D6;CYP2D7
-  NA17203	BC59	CYP2D6;CYP2D7
-  ...  ...  ...
-  ```
-  and `amplicons_json` is a JSON file with the following format:
-  ```JSON
-  {
-    "CYP2D6": {
-      "chrom": "chr22",
-      "start": 42125398,
-      "end": 42131503,
-      "strand": "-",
-      "fwd_primer": "TGTGAATATTGTCTTTGTGTGGGTG",
-      "rvs_primer": "CAGGACTCAGGTAATCATATGCTCA"
-    },
-    "CYP2D7": {
-      "chrom": "chr22",
-      "start": 42137550,
-      "end": 42145176,
-      "strand": "-",
-      "fwd_primer": "TGTGAATATTGTCTTTGTGTGGGTG",
-      "rvs_primer": "CAGGACTCAGGTAATCATATGCTCA"
-    }
-  }
-  ```
+  See [Allele-typing Parameters](doc/allelle_typing.md) from more details
 
 #### Allele-typing
 
