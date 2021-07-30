@@ -9,7 +9,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
-stopifnot(require(tidyverse),
+stopifnot(require(Biostrings),
+          require(tidyverse),
           require(magrittr),
           require(plotly),
           require(cowplot),
@@ -108,20 +109,21 @@ setdown <- function(data, title = NULL, max_n = 2) {
 
 
 ```{r read_data}
-manifest <- 
-  read_tsv(sample_manifest, col_types = 'ccc') %>% 
-  mutate(amplicons = str_split(amplicons, ';')) %>% 
-  mutate(sample_barcode = str_c(sample, barcode, sep='.'))
 
-amplicon_set <- unlist(manifest$amplicons) %>% unique()
+amplicon_set <- fromJSON(amplicons_json) %>% names()
+
+sample_manifest <-
+  readDNAStringSet(barcodes) %>%
+  { tibble(sample = names(.),
+           barcode = as.character(.)) } %>%
+    expand_grid(amplicon = amplicon_set)
 
 amplicons_tbl <- 
   fromJSON(amplicons_json) %>% 
   map2_df(.,  names(.), function(d, n) {
     as_tibble(d) %>% mutate(amplicon = n)
   }) %>% 
-  select(amplicon, chrom, start, end) %>% 
-  filter(amplicon %in% amplicon_set) %>% 
+  select(amplicon, chrom, start, end) %>%
   mutate(len = end - start,
          left = start - round(0.10 * len),
          right = end + round(0.10 * len))
@@ -160,7 +162,7 @@ amplicon_pal_3 <-
 **amplicon set:** `r str_c(amplicons_tbl$amplicon, collapse=', ')`
 
 ```{r sample_manifest}
-read_tsv(sample_manifest, col_types = 'ccc') %>%
+sample_manifest %>%
   DT::datatable(filter = 'top',
                 extensions = 'Buttons',
                 options = list(
@@ -365,7 +367,7 @@ sm_read_smry %>%
   group_by(sample, barcode, amplicon) %>% 
   summarise(n = sum(n)) %>% 
   ungroup() %>% 
-  full_join(manifest %>% unnest(amplicons) %>% select(sample, barcode, amplicon = amplicons),
+  full_join(sample_manifest,
             c('sample', 'barcode', 'amplicon')) %>%
   mutate(n = if_else(is.na(n), 0L, n)) %>% 
   arrange_all() %>% 

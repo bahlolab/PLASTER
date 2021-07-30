@@ -12,7 +12,7 @@ workflow {
     else if (params.mode == 'typing') {
         typing()
     } else {
-        println "Error: No run mode specified"
+        println "Error: No stage specified - must specify either 'preproc' or 'typing'"
         System.exit(1)
     }
 }
