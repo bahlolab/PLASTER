@@ -19,7 +19,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   nextflow run bahlolab/PLASTER -profile preproc,test,singularity
   ```
-  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead.
+  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config>
@@ -33,7 +33,12 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  See [Pre-processing Parameters](doc/preproc.md) for more details
+  See [Pre-processing Parameters](doc/preproc.md) for more details.
+* **Resuming a failed run**  
+  Adding the `-resume` option to the Nextflow run command will use cached results from any pipeline steps where the inputs remain the same:
+  ```
+  nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config> -resume
+  ```
 * **Outputs**  
   TBD
 
@@ -43,7 +48,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   nextflow run bahlolab/PLASTER -profile typing,test,singularity
   ```
-  This command will download the pipeline from GitHub and run the allele-typing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead.
+  This command will download the pipeline from GitHub and run the allele-typing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile typing,singularity -c <my_dataset.config>
@@ -51,12 +56,26 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   where `my_dataset.config` is a file specifying the following required parameters:
   ```Nextflow
   params {
-    manifest = '@PROJECT_DIR@/test/typing/manifest.csv'
-    amplicons_json = '@PROJECT_DIR@/test/typing/amplicons.json'
+    manifest = '/PATH/TO/MY/manifest.csv'
+    amplicons_json = '/PATH/TO/MY/amplicons.json'
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  See [Allele-typing Parameters](doc/typing.md) for more details
+  See [Allele-typing Parameters](doc/typing.md) for more details.
+* **Resuming a failed run**  
+  Adding the `-resume` option to the Nextflow run command will use cached results from any pipeline steps where the inputs remain the same:
+  ```
+  nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config> -resume
+  ```
 * **Outputs**  
   TBD
 
+## Implementation Details
+
+### Pre-processing
+
+* TBD
+
+### Allele-typing
+
+* TBD
