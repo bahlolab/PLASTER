@@ -3,7 +3,7 @@
 * **`subreads_bam` (required)**  
   Path to a PacBio subreads BAM file with corresponding `.pbi` index file, output from a sequel I/II machine.
 * **`ref_fasta` (required)**  
-  Path to a FASTA file to be used as the reference genome. Also supports FTP and HTTP(S) if prefixed appropriately (i.e., with `'ftp://'`, `'http://'` or `'https://'`). 
+  Path to a FASTA file to be used as the reference genome. Also supports FTP/HTTP if prefixed appropriately with 'ftp://'/'http://'. 
 * **`barcodes_fasta` (required)**  
   Path to a FASTA file containing barcode sequences and samples names, e.g.:
   ```

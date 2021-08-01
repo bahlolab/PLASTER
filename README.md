@@ -33,7 +33,9 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  See [Pre-processing Parameters](doc/preproc.md) from more details
+  See [Pre-processing Parameters](doc/preproc.md) for more details
+* **Outputs**  
+  TBD
 
 ### Allele-typing
 
@@ -41,7 +43,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   nextflow run bahlolab/PLASTER -profile typing,test,singularity
   ```
-  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead.
+  This command will download the pipeline from GitHub and run the allele-typing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead.
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile typing,singularity -c <my_dataset.config>
@@ -54,6 +56,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  See [Allele-typing Parameters](doc/typing.md) from more details
-
+  See [Allele-typing Parameters](doc/typing.md) for more details
+* **Outputs**  
+  TBD
 
