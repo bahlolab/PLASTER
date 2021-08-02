@@ -24,10 +24,10 @@ workflow phase {
             phased1 |
             flatMap { it[4].collect { x -> it[0..1] + x[0..1] } } |
             combine(copy_num, by:0..1) |
-            map { [it[0], it[1..5].join('\t')] } |
+            map { [it[0], it[1..5].join(',')] } |
             collectFile(newLine: true, storeDir: './output/',
-                seed: ['sample', 'phase', 'phase_copy_num', 'copy_num', 'is_default'].join('\t')) {
-                am, text -> ["${am}.phase_summary.tsv", text] }
+                seed: ['sample', 'phase', 'phase_copy_num', 'copy_num', 'is_default'].join(',')) {
+                am, text -> ["${am}.phase_copy_num.csv", text] }
 
         phased2 = phased1 |
             map { it[0..3] + [it[4].collect{ it[2] }.min()] } |
@@ -36,9 +36,9 @@ workflow phase {
                 fail: true }
         // write samples with too few phased reads to file
         phased2.fail |
-            map { [it[1], it[0]].join('\t') } |
-            collectFile(name: 'low_phased_read_count.tsv', storeDir: './output/', newLine: true,
-                seed: ['sample', 'amplicon'].join('\t')) |
+            map { [it[1], it[0]].join(',') } |
+            collectFile(name: 'low_phased_read_count.csv', storeDir: './output/', newLine: true,
+                seed: ['sample', 'amplicon'].join(',')) |
             map {
                 lines = it.toFile().readLines()
                 if (lines.size() > 1) {

@@ -61,9 +61,9 @@ workflow prep_bams {
     // write samples with too few reads to file
     bams2.too_few |
         mix(bams3.too_few) |
-        map { it.take(3).collect {it.toString()}.join('\t') } |
-        collectFile(name: 'low_read_count.tsv', storeDir: './output/', newLine: true,
-            seed: ['sample', 'amplicon', 'n_reads'].join('\t')) |
+        map { it.take(3).collect {it.toString()}.join(',') } |
+        collectFile(name: 'low_read_count.csv', storeDir: './output/', newLine: true,
+            seed: ['sample', 'amplicon', 'n_reads'].join(',')) |
         map {
             lines = it.toFile().readLines()
             if (lines.size() > 1) {

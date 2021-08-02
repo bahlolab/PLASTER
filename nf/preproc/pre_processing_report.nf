@@ -11,7 +11,7 @@ process pre_processing_report {
         tuple path(html), path(amp_counts_smry), emit: report
 
     script:
-        html = "pre_processing_report.${params.run_id}.html"
+        html = "pre_processing_report.html"
         amp_counts_smry = "amp_counts_smry.tsv"
         """
         cp --remove-destination `readlink $rmd` $rmd
