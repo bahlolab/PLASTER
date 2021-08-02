@@ -1,0 +1,121 @@
+---
+title: "Fusion Report"
+date: "`r date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+stopifnot(require(tidyverse),
+          require(assertthat),
+          require(magrittr))
+
+```
+
+```{r}
+min_reads <- 100
+# amplicons <- c('CYP2D6', 'CYP2D7')
+amplicons <- c(str_split(amplicons, ',', simplify = T))
+
+types <-
+  c(amplicons,
+    amplicons %>% str_c(collapse = '-'),
+    rev(amplicons) %>% str_c(collapse = '-'))
+
+type_state <- 
+  bind_rows(tibble(type = types[1:2], state = 'clean'),
+            expand_grid(type = types[3:4], state = c('chimera', 'fusion')))
+
+smry <-
+  tibble(fn = list.files(pattern = '.fus_smry.csv$'),
+         sample = str_extract(fn, '(?<=SM-).+(?=\\.fus_smry\\.csv)'),
+         data = map(fn, read_csv, col_types = cols())) %>% 
+  select(sample, data) %>% 
+  unnest(data) %>% 
+  mutate(bp = str_extract(type, '(?<=-)[0-9]+$') %>% as.integer(),
+         state = str_extract(type, '^[a-z]+'),
+         type = type %>% str_remove('^[a-z]+-') %>% str_remove('-[0-9]+$')) %>% 
+  select(sample, state, type, bp,  n_reads) %T>% 
+  with(assert_that(all(type %in% types),
+                   all(state %in% type_state$state))) %>% 
+  group_by(sample) %>% 
+  complete(type_state,
+           fill = list(n_reads = 0)) %>% 
+  mutate(p_reads = n_reads / sum(n_reads)) %>% 
+  ungroup() %>% 
+  write_csv('sample_read_prop.csv.gz')
+
+breakpoints <-
+  tibble(fn = list.files(pattern = '.breakpoints.csv.gz$'),
+         sample = str_extract(fn, '(?<=SM-).+(?=\\.breakpoints\\.csv\\.gz)'),
+         data = map(fn, read_csv, col_types = cols())) %>% 
+  select(sample, data) %>% 
+  unnest(data) %T>% 
+  with(assert_that(all(type %in% types))) 
+
+```
+
+```{r nreads}
+sm_n_reads <-
+  smry %>% 
+  group_by(sample) %>% 
+  summarise(n_reads = sum(n_reads), 
+            .groups = 'drop')
+
+sm_n_reads %>%
+  arrange_all() %>% 
+  DT::datatable(extensions = 'Buttons',
+                options = list(
+                  dom = 'Btp',
+                  buttons = c('copy', 'csv')),
+                caption = htmltools::tags$caption(
+                  style = 'font-weight: bold; font-size:150% ;',
+                  'Sample Read Counts'))
+
+sm_n_reads %>% 
+  ggplot() +
+  stat_ecdf(aes(n_reads)) +
+  ggtitle('Num Reads ECDF') +
+  geom_vline(xintercept = min_reads, col = 'red') +
+  ylab('proportion of samples') +
+  xlab('number of reads processed')
+```
+
+* minimum recommended number indicated my red line (`r min_reads`)
+
+```{r}
+sm_type <-
+  smry %>% 
+  filter(n_reads > 0, state == 'fusion') %>% 
+  complete(sample = unique(smry$sample), 
+           fill = list(state = 'no call', type = 'NA')) %>% 
+  select(sample, state,type, breakpoint = bp, n_reads) %>% 
+  arrange_all() %>% 
+  write_csv('fusion_calls.csv')
+
+sm_type %>% 
+  select(sample, state, type, breakpoint, n_reads) %>% 
+  DT::datatable(extensions = 'Buttons',
+                options = list(
+                  dom = 'Btp',
+                  buttons = c('copy', 'csv')),
+                caption = htmltools::tags$caption(
+                  style = 'font-weight: bold; font-size:150% ;',
+                  'Sample Fusion Calls'))
+```
+
+```{r}
+smry %>% 
+  mutate(state = factor(state, c('clean', 'chimera', 'fusion'))) %>% 
+  ggplot(aes(state, p_reads, col = type)) +
+  geom_boxplot() +
+  ylab('proportion of reads') +
+  coord_flip() +
+  ggtitle('Assigned Read Proportions')
+```
+
+

@@ -20,7 +20,7 @@ workflow prep_ref {
 
 process wget {
     label 'S_L'
-    publishDir "output/ref", mode: params.output_pub_mode
+    publishDir "progress/ref", mode: params.intermediate_pub_mode
 
     input:
         val url
@@ -45,7 +45,7 @@ process wget {
 
 process mmi {
     label 'M'
-    publishDir "output/ref", mode: params.output_pub_mode
+    publishDir "progress/ref", mode: params.intermediate_pub_mode
 
     input:
     path ref
@@ -66,7 +66,7 @@ process mmi {
 
 process fai_dict {
     label 'S'
-    publishDir "output/ref", mode: params.output_pub_mode
+    publishDir "progress/ref", mode: params.intermediate_pub_mode
 
     input:
         path ref

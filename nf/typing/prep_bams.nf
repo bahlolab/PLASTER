@@ -1,5 +1,7 @@
 import groovy.json.JsonOutput
 
+include { path } from '../functions'
+
 workflow prep_bams {
     take:
     data // sm, am, nr, bam
@@ -41,6 +43,15 @@ workflow prep_bams {
                 too_few: it[2] < params.min_reads
                 pass_through: true
             }
+
+        fusion_call.out.results |
+            map { it[2..3] } |
+            toSortedList |
+            map { it.transpose() } |
+            combine([[fusion_set]]) |
+            combine([path("${workflow.projectDir}/bin/fusion_report.Rmd")]) |
+            fusion_report
+
     } else {
         bams3 = [too_many: Channel.fromList([]),
                  too_few: Channel.fromList([]),
@@ -50,9 +61,9 @@ workflow prep_bams {
     // write samples with too few reads to file
     bams2.too_few |
         mix(bams3.too_few) |
-        map { it.take(3).collect {it.toString()}.join('\t') } |
-        collectFile(name: 'low_read_count.tsv', storeDir: './output/', newLine: true,
-            seed: ['sample', 'amplicon', 'n_reads'].join('\t')) |
+        map { it.take(3).collect {it.toString()}.join(',') } |
+        collectFile(name: 'low_read_count.csv', storeDir: './output/', newLine: true,
+            seed: ['sample', 'amplicon', 'n_reads'].join(',')) |
         map {
             lines = it.toFile().readLines()
             if (lines.size() > 1) {
@@ -84,7 +95,7 @@ process merge {
 
     script:
     merged = "SM-${sm}.AM-${am}.merged.bam"
-    """
+        """
         for BAM in *.bam; do samtools index \$BAM; done
         samtools merge $merged *.bam
         """
@@ -163,5 +174,25 @@ process fusion_call {
         --min-score-delta 10 \\
         --fusion-window 10 \\
         --out $prefix
+    """
+}
+
+process fusion_report {
+    label 'M'
+    publishDir "output", mode: "$params.output_pub_mode"
+
+    input:
+        tuple path(smry), path(bps), val(am), path(rmd)
+
+    output:
+        tuple path(html), path(calls)
+
+    script:
+    html = "fusion_report.html"
+    calls = 'fusion_calls.csv'
+    """
+    cp --remove-destination `readlink $rmd` $rmd
+    R -e "amplicons=\'${am.join(',')}\';\\
+          rmarkdown::render('$rmd', output_file='$html')" --slave --vanilla
     """
 }
