@@ -40,7 +40,12 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config> -resume
   ```
 * **Outputs**  
-  TBD
+  * **`./output/bam/`**  
+    Directory containing aligned CCS BAM files for each sample-amplicon.
+  * **`./output/sample_amplicon_bam_manifest.csv`**  
+    CSV file with columns "sample", "amplicon", "n_reads", "bam_file" - to be used as input for the Allele-typing stage (see below).
+  * **`./output/pre_processing_report.html`**  
+    HTML report with various summary statistics and plots.
 
 ### Allele-typing
 
@@ -68,7 +73,26 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config> -resume
   ```
 * **Outputs**  
-  TBD
+  * **`./output/low_read_count.csv`**  
+    Details of any sample amplicons excluded due to having too few reads. If no sample amplicons are excluded for this reason then this file won't be created.
+  * **`./output/low_phased_read_count.csv`**  
+    Details of any sample amplicons excluded due to having too few phased reads. If no samples amplicons are excluded for this reason then this file won't be created.
+  * **`./output/fusion_calls.csv`**  
+    Details of fusions calls made. Only produced if fusion detection is enabled.
+  * **`./output/fusion_report.html`**  
+    Report summarising fusion calling. Only produced if fusion detection is enabled.
+  * **`./output/<amplicon>.phase_copy_num.csv`**  
+    Details of copy number assigned to each sample-amplicon-phase.
+  * **`./output/AmpPhaseR/`**  
+    Directory containing AmpPhaseR plots showing read phasing, denoising and chimera removal.
+  * **`./output/<amplicon>.vep.vcf.gz`**  
+  VCF file with sample-amplicon-phase calls and VEP variant annotation.
+  * **`./output/<amplicon>.sample_phase_alleleles.csv`**  
+  Star allele assignment for sample phases. Only produced is star allele assignment is enabled.
+  * **`./output/<amplicon>.allele_definition.csv`**  
+  Star allele definitions. Only produced is star allele assignment is enabled.
+    
+    
 
 ## Implementation Details
 
