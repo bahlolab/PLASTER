@@ -19,7 +19,9 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   nextflow run bahlolab/PLASTER -profile preproc,test,singularity
   ```
-  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.
+  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.  
+  
+  Profiles are provided for executors [SLURM](https://slurm.schedmd.com/documentation.html) and [PBS/torque](http://en.wikipedia.org/wiki/Portable_Batch_System), to use these append either `slurm` or `pbs` to the end of the profile specification (e.g., `-profile preproc,test,singularity,slurm`). Additional executors may be specified in a custom nextflow configuration, see [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config>
@@ -54,6 +56,8 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   nextflow run bahlolab/PLASTER -profile typing,test,singularity
   ```
   This command will download the pipeline from GitHub and run the allele-typing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.
+  
+  Profiles are provided for executors [SLURM](https://slurm.schedmd.com/documentation.html) and [PBS/torque](http://en.wikipedia.org/wiki/Portable_Batch_System), to use these append either `slurm` or `pbs` to the end of the profile specification (e.g., `-profile preproc,test,singularity,slurm`). Additional executors may be specified in a custom nextflow configuration, see [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile typing,singularity -c <my_dataset.config>
