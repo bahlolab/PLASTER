@@ -94,12 +94,23 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
     
     
 
-## Implementation Details
+## Implementation
 
 ### Pre-processing
 
-* TBD
+* **CCS** - [PacificBiosciences/ccs](https://github.com/PacificBiosciences/ccs)
+* **Barcoding** - [PacificBiosciences/barcoding](https://github.com/PacificBiosciences/barcoding)
+* **Alignment** - [PacificBiosciences/pbmm2](https://github.com/PacificBiosciences/pbmm2)
+* **Trim** - Python script [`bam_annotate_amplicons.py`](bin/bam_annotate_samples.py) based on [pysam](https://github.com/pysam-developers/pysam)
+* **Split** - Python scripts [`bam_annotate_samples.py`](bin/bam_annotate_samples.py) and [`bam_split_sample_amplicons.py`](bin/bam_split_sample_amplicons.py) based on [pysam](https://github.com/pysam-developers/pysam)
+* **Report** - Rmarkdown document [`preproc-report.Rmd`](bin/preproc-report.Rmd)
 
 ### Allele-typing
 
-* TBD
+* **Fusions** - R script [`fusion_call.R`](bin/fusion_call.R) and Rmarkdown document [`fusion_report.Rmd`](bin/fusion_report.R)
+* **Call SNPs** - [GATK HaplotypeCaller](https://gatk.broadinstitute.org/hc/en-us/articles/4404604697243-HaplotypeCaller) and [GATK GenotypeGVCFs](https://gatk.broadinstitute.org/hc/en-us/articles/4404607598875-GenotypeGVCFs) implemented in [`gatk.nf`](nf/typing/gatk.nf)
+* **Phase** - [BCFtools](http://samtools.github.io/bcftools/bcftools.html) and R package [AmpPhaseR](AmpPhaseR) implemented in [`phase.nf`](nf/typing/phase.nf)
+* **Call Variants** - [GATK HaplotypeCaller](https://gatk.broadinstitute.org/hc/en-us/articles/4404604697243-HaplotypeCaller) and [GATK GenotypeGVCFs](https://gatk.broadinstitute.org/hc/en-us/articles/4404607598875-GenotypeGVCFs) implemented in [`gatk.nf`](nf/typing/gatk.nf)
+* **VEP** - [Ensembl Variant Effect Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html) implemented in [`vep.nf`](nf/typing/vep.nf)
+* **Star Alleles** - R script [`pharmvar_star_allele.R`](bin/pharmvar_star_allele.R) using [PharmVar](https://www.pharmvar.org/) database
+
