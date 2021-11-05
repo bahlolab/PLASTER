@@ -1,3 +1,4 @@
+include { path } from './functions'
 
 workflow prep_ref {
     take:
@@ -6,7 +7,7 @@ workflow prep_ref {
     main:
         ref = ref_fasta ==~ '^(ftp|https?)://.+' ?
             wget(ref_fasta) :
-            Channel.from(path(ref))
+            Channel.value(path(ref_fasta))
         if (mode == 'mmi') {
             mmi(ref)
             out = mmi.out.ccs_mmi | mix(mmi.out.subread_mmi)

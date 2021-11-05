@@ -46,14 +46,14 @@ workflow phase {
                 }
             }
 
-        bams = phased2.pass |
-            map { it.take(3) } |
-            combine(bams, by: 0..1) |
-            split_phases |
-            transpose |
-            map { it.take(2) +
-                [(it[3] =~ '([0-9]+)\\.bam$')[0][1], it[2].toFile().text as int] +
-                it.takeRight(2) }
+    bams = phased2.pass |
+        map { it.take(3) } |
+        combine(bams, by: 0..1) |
+        split_phases |
+        transpose |
+        map { it.take(2) +
+            [(it[3] =~ '([0-9]+)\\.bam$')[0][1], it[2].toFile().text as int] +
+            it.takeRight(2) }
 
     emit:
         bams // am, sm, ps, nr, bam, bai

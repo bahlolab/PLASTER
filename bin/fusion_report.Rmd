@@ -52,7 +52,7 @@ smry <-
 breakpoints <-
   tibble(fn = list.files(pattern = '.breakpoints.csv.gz$'),
          sample = str_extract(fn, '(?<=SM-).+(?=\\.breakpoints\\.csv\\.gz)'),
-         data = map(fn, read_csv, col_types = cols())) %>% 
+         data = map(fn, read_csv, col_types = 'cciiii')) %>%
   select(sample, data) %>% 
   unnest(data) %T>% 
   with(assert_that(all(type %in% types))) 
