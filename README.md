@@ -19,7 +19,9 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   ```
   nextflow run bahlolab/PLASTER -profile preproc,test,singularity
   ```
-  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.
+  This command will download the pipeline from GitHub and run the pre-processing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.  
+  
+  Profiles are provided for executors [SLURM](https://slurm.schedmd.com/documentation.html) and [PBS/torque](http://en.wikipedia.org/wiki/Portable_Batch_System), to use these append either `slurm` or `pbs` to the end of the profile specification (e.g., `-profile preproc,test,singularity,slurm`). Additional executors may be specified in a custom nextflow configuration, see [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile preproc,singularity -c <my_dataset.config>
@@ -54,6 +56,8 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
   nextflow run bahlolab/PLASTER -profile typing,test,singularity
   ```
   This command will download the pipeline from GitHub and run the allele-typing stage on a minimal test dataset using singularity to run the software container. Replace "singularity" with "docker" to use docker instead. Note that nextflow pipelines are run in the current working directory, so make sure your terminal is in the appropriate directory first.
+  
+  Profiles are provided for executors [SLURM](https://slurm.schedmd.com/documentation.html) and [PBS/torque](http://en.wikipedia.org/wiki/Portable_Batch_System), to use these append either `slurm` or `pbs` to the end of the profile specification (e.g., `-profile preproc,test,singularity,slurm`). Additional executors may be specified in a custom nextflow configuration, see [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 * **Running your own dataset**
   ```
   nextflow run bahlolab/PLASTER -profile typing,singularity -c <my_dataset.config>
@@ -94,12 +98,23 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
     
     
 
-## Implementation Details
+## Implementation
 
 ### Pre-processing
 
-* TBD
+* **CCS** - [PacificBiosciences/ccs](https://github.com/PacificBiosciences/ccs)) implemented in [`pb_ccs.nf`](nf/preproc/pb_ccs.nf)
+* **Barcoding** - [PacificBiosciences/barcoding](https://github.com/PacificBiosciences/barcoding) implemented in [`pb_lima.nf`](nf/preproc/pb_lima.nf)
+* **Alignment** - [PacificBiosciences/pbmm2](https://github.com/PacificBiosciences/pbmm2) implemented in [`pb_mm2.nf`](nf/preproc/pb_mm2.nf)
+* **Trim** - Python script [`bam_annotate_amplicons.py`](bin/bam_annotate_samples.py) based on [pysam](https://github.com/pysam-developers/pysam)
+* **Split** - Python scripts [`bam_annotate_samples.py`](bin/bam_annotate_samples.py) and [`bam_split_sample_amplicons.py`](bin/bam_split_sample_amplicons.py) based on [pysam](https://github.com/pysam-developers/pysam)
+* **Report** - Rmarkdown document [`preproc-report.Rmd`](bin/preproc-report.Rmd)
 
 ### Allele-typing
 
-* TBD
+* **Fusions** - R script [`fusion_call.R`](bin/fusion_call.R) and Rmarkdown document [`fusion_report.Rmd`](bin/fusion_report.Rmd)
+* **Call SNPs** - [GATK HaplotypeCaller](https://gatk.broadinstitute.org/hc/en-us/articles/4404604697243-HaplotypeCaller) and [GATK GenotypeGVCFs](https://gatk.broadinstitute.org/hc/en-us/articles/4404607598875-GenotypeGVCFs) implemented in [`gatk.nf`](nf/typing/gatk.nf)
+* **Phase** - [BCFtools](http://samtools.github.io/bcftools/bcftools.html) and R package [AmpPhaseR](AmpPhaseR) implemented in [`phase.nf`](nf/typing/phase.nf)
+* **Call Variants** - [GATK HaplotypeCaller](https://gatk.broadinstitute.org/hc/en-us/articles/4404604697243-HaplotypeCaller) and [GATK GenotypeGVCFs](https://gatk.broadinstitute.org/hc/en-us/articles/4404607598875-GenotypeGVCFs) implemented in [`gatk.nf`](nf/typing/gatk.nf)
+* **VEP** - [Ensembl Variant Effect Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html) implemented in [`vep.nf`](nf/typing/vep.nf)
+* **Star Alleles** - R script [`pharmvar_star_allele.R`](bin/pharmvar_star_allele.R) using [PharmVar](https://www.pharmvar.org/) database
+
