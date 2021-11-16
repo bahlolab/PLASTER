@@ -49,7 +49,7 @@ workflow gatk {
 process haplotype_caller {
     label 'M2_NR'
     publishDir "progress/haplotype_caller", mode: "$params.intermediate_pub_mode"
-    tag { "$sm:$am:${ps ? ps : ''}" }
+    tag { "$sm:$am${ps ? ':' + ps : ''}" }
 
     input:
         tuple val(am), val(reg), val(sm), val(ps), val(nr), path(bam), path(bai)

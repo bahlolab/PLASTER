@@ -82,7 +82,6 @@ get_vep_info <- function(gds, amplicon, ann_tag = 'CSQ') {
         as_tibble()) %>% 
     set_colnames(., str_to_lower(names(.)))  %>% 
     type_convert(., col_types = cols()) %>% 
-    select_if(., ~ !all(is.na(.))) %>% 
     mutate(impact = ordered(impact, c('MODIFIER', 'LOW', 'MODERATE',  'HIGH'))) %>% 
     (function(x) {
       names(amplicon) %>% 
@@ -288,7 +287,8 @@ sample_phase_match <-
                                 sub_id, 
                                 str_c('novel-', str_pad(seq_along(sub_id), 2, 'l', '0')))) %>%
         ungroup() %>% 
-        mutate(allele = str_c('*', core_id, '.', sub_id)),
+        mutate(allele = str_c('*', core_id, '.', sub_id)) %>% 
+        { `if`(nrow(.), ., tibble())},
       filter(x, !is_func_equiv) %>% 
         chop(-vid_impact) %>% 
         arrange(desc(map_int(sample_data, ~ sum(map_int(., nrow))))) %>% 
@@ -297,7 +297,8 @@ sample_phase_match <-
         group_by(core_id) %>% 
         mutate(sub_id = str_c('novel-', str_pad(seq_along(sub_id), 2, 'l', '0'))) %>%
         ungroup() %>% 
-        mutate(allele = str_c(core_id, '.', sub_id)))
+        mutate(allele = str_c(core_id, '.', sub_id)) %>% 
+        { `if`(nrow(.), ., tibble())})
   }) %>% 
   select(allele, core_id, sub_id, vid, vid_impact, sample_data) %>% 
   left_join(pv_alleles %>% select(core_id, `function`) %>% distinct(),
@@ -326,3 +327,4 @@ sample_phase_match %>%
   select(sample, phase, core_allele,  allele, `function`) %>% 
   arrange(sample, phase) %>% 
   write_csv(str_c(opts$out_pref, '.sample_phase_alleles.csv'))
+
