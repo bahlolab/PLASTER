@@ -118,3 +118,6 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 * **VEP** - [Ensembl Variant Effect Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html) implemented in [`vep.nf`](nf/typing/vep.nf)
 * **Star Alleles** - R script [`pharmvar_star_allele.R`](bin/pharmvar_star_allele.R) using [PharmVar](https://www.pharmvar.org/) database
 
+## Contributing
+* Contributions are welcome, feel free to fork this repository and make a pull request.
+* The pipeline could be extended to support Nanopore data as well PacBio data, but would require an alternate pre-processing stage. Please contact us if you are interested in working on this.
