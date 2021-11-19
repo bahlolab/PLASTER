@@ -121,3 +121,6 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 ## Contributing
 * Contributions are welcome, feel free to fork this repository and make a pull request.
 * The pipeline could be extended to support Nanopore data as well PacBio data, but would require an alternate pre-processing stage. Please contact us if you are interested in working on this.
+
+## Copy Number Analysis
+* The folder `CopyNumAnalysis` contains raw data and the analysis Rmarkdown document associated with the qPCR copy number analysis presented in the PLASTER manuscript.
