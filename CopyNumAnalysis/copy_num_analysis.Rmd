@@ -1,0 +1,210 @@
+---
+title: "qPCR results"
+output: html_notebook
+---
+
+```{r setup}
+library(mixtools)
+library(tidyverse)
+library(magrittr)
+```
+
+```{r load_crossing_point_data}
+crossing_point <- read_csv('./crossing_point.csv.gz', col_types = cols())
+```
+```{r calculate_rel_quant_wrt_reference}
+
+rel_quant <-
+  na.omit(crossing_point) %>%  
+  mutate(sample = if_else(sample_type == 'dna_control', str_c(sample, plate, sep = ':'), sample)) %>% 
+  select(sample, plate, pos, amplicon, cp, sample_type) %>% 
+  pivot_wider(names_from = amplicon, values_from = cp) %>% 
+  mutate(marker = if_else(is.na(intron_2), 'exon_9', 'intron_2'),
+         tar = if_else(is.na(intron_2), exon_9, intron_2)) %>% 
+  # use pffafl relative quantification 
+  mutate(rq = (2 ^ -tar) / (2 ^ -ref))  %>% 
+  select(-tar, -ref, -intron_2, -exon_9) %>% 
+  na.omit() %>% 
+  add_count(sample, marker) %>% 
+  filter(n >= 3) %>% 
+  group_by(marker, plate, sample_type) %>% 
+  mutate(rq = rq / median(rq, na.rm = TRUE)) %>%
+  group_by(marker, sample) %>% 
+  # detect and remove outliers based on z-score
+  mutate(rqz = (rq - median(rq)) / mad(rq),
+    outlier = !((mad(rq) == 0 ) | replace_na(rqz < qnorm(.025, lower.tail = FALSE), TRUE)),
+    any_outlier = any(outlier)) %>%
+  filter(!outlier) %>% 
+  summarise(rq = mean(rq, na.rm = TRUE),
+            plate = if_else(n_distinct(plate) == 1, first(plate), 'multiple'),
+            nrep = n(),
+            any_outlier = first(any_outlier),
+            .groups = 'drop') %>% 
+  group_by(marker) %>%
+  mutate(rq = 2 * rq / median(rq, na.rm = TRUE)) %>% 
+  ungroup() %>%
+  mutate(sample_type = if_else(str_detect(sample, ':'), 'dna_control', 'subject'))
+```
+
+
+```{r marker_cn_mixture_model}
+# minimum and maximum copy number states to assign
+min_cn <- 1L
+max_cn <- 4L
+states <- min_cn:max_cn
+
+# rough estimate of copy number to use as starting point for EM
+copy_num_1 <-
+  rel_quant %>% 
+  select(sample, plate, sample_type, marker, quant = rq) %>% 
+  mutate(state = as.integer(round(quant)), 
+         state = case_when(state < min_cn ~ min_cn,
+                           state > max_cn ~ max_cn,
+                           TRUE ~ state)) %>% 
+  split.data.frame(.$marker)
+
+# copy number mixture models for each target amplicon
+cn_mod <-
+  map(copy_num_1, function(cn) {
+    # initial model seeded with rough estimate 
+    mu0 <-
+      cn %>% 
+      group_by(state) %>% 
+      summarise(n = n(), mu = median(quant), 
+                .groups = 'drop') %>% 
+      pull(mu) %>% sort()
+      
+    nm1 <-
+      suppressWarnings({
+        set.seed(1)
+        normalmixEM(x = cn$quant,
+                    mu = mu0,
+                    mean.constr = str_c(mu0),
+                    sd.constr = rep('a', length(mu0)))
+      })
+    # refined model seeded with initial model estimate 
+    mu1 <-
+      tibble(x = nm1$x,
+             cl = map_int(seq_along(x), ~which.max(nm1$posterior[., ]))) %>% 
+      group_by(cl) %>% 
+      summarise(mu = mean(x),
+                .groups = 'drop') %>% 
+      pull(mu) %>% sort()
+    
+    nm2 <-
+      suppressWarnings({
+        set.seed(1)
+        normalmixEM(x = cn$quant,
+                    mu = mu1,
+                    mean.constr = str_c(mu1),
+                    sd.constr = rep('a', length(mu1)))
+      })
+  })
+
+# extract model density for plotting
+cn_density <-
+  map2_df(cn_mod, names(cn_mod), function(mod, n) {
+    map_df(seq_along(mod$mu), function(i) {
+      tibble(mu = as.character(i), 
+             x = seq(0.5, 4.5, 0.01),
+             y = mod$lambda[i] * dnorm(x, mean = mod$mu[i], sd = mod$sigma[i])) 
+    }) %>%
+      mutate(y = y / max(y),
+             marker = n)
+  })
+
+# extract copy number calls
+copy_num_calls_long <-
+  list(cn = copy_num_1, mod = cn_mod) %>% 
+  pmap_df(function(cn, mod) {
+    bind_cols(select(cn, -state),
+              map_df(seq_len(nrow(mod$posterior)), function(i) {
+                j <- which.max(mod$posterior[i, ])
+                tibble(state = states[j],
+                       posterior = mod$posterior[i, j]) 
+              }))
+  }) %>% 
+  mutate(cn_state = if_else(posterior < -1,
+                            str_c(state, ' (low conf)'),
+                            as.character(state)))
+
+# reshape copy num to be one row per sample
+copy_num_calls <-
+  copy_num_calls_long %>% 
+  group_by(sample) %>% 
+  mutate(plate = if_else(n_distinct(plate) > 1, 'multiple', first(plate))) %>% 
+  select(-cn_state) %>% 
+  rename(raw_copy_num = quant, copy_num = state) %>% 
+  pivot_wider(names_from = marker,
+              values_from = c(raw_copy_num, copy_num, posterior)) %>% 
+  mutate(raw_copy_num_delta = raw_copy_num_intron_2 - raw_copy_num_exon_9 ,
+         copy_num_delta = copy_num_intron_2 - copy_num_exon_9,
+         delta_conf = posterior_intron_2 * posterior_exon_9,
+         is_discordand = copy_num_delta != 0,
+         delta_state = as.character(copy_num_delta)) %>% 
+  ungroup()
+
+# define state based on intron-2 and exon-9 copy number
+cn_state <-
+  copy_num_calls %>% 
+  select(sample, copy_num_exon_9, copy_num_intron_2, conf = delta_conf) %>% 
+  mutate(sample = str_remove(sample, ':.+')) %>% 
+  group_by(sample) %>% 
+  summarise(copy_num_exon_9 = median(copy_num_exon_9, na.rm = TRUE),
+            copy_num_intron_2 = median(copy_num_intron_2, na.rm = TRUE),
+            conf = median(conf, na.rm = TRUE),
+            .groups = 'drop') %>% 
+  mutate(state = case_when(copy_num_exon_9 > copy_num_intron_2  ~ 'high E9',
+                           copy_num_exon_9 < copy_num_intron_2  ~ 'high I2',
+                           copy_num_exon_9 == copy_num_intron_2 ~ 'normal'))
+
+```
+
+
+```{r plot_copy_num_results}
+
+ctrl_copy_num <-
+  copy_num_calls_long %>% 
+  filter(sample_type == 'dna_control') %>% 
+  mutate(sample = str_remove(sample, ':.+'))
+
+pal <-
+  ctrl_copy_num %>% select(state) %>% distinct() %>% arrange(state) %>% 
+  mutate(state = as.character(state),
+         state = map(state, ~ c(str_c(., ' (low conf)'), .))) %>% 
+  unnest(state) %>% 
+  mutate(color = RColorBrewer::brewer.pal(n(), 'Paired')) %>% 
+  with(setNames(color, state))
+
+ctrl_copy_num %>% 
+  filter(sample_type == 'dna_control') %>%
+  ggplot(aes(sample, quant)) +
+  geom_point(aes(col = cn_state)) +
+  geom_boxplot(fill = NA, outlier.colour = NA) +
+  scale_color_manual(values = pal, name = 'Assigned copy number') +
+  ylab('Raw copy number') +
+  coord_flip() +
+  facet_wrap(~marker, nrow = 1) +
+  guides(color = F) +
+  ylim(0.5, 4.5) +
+  ggtitle('Control sample replicate copy number distribution')
+
+
+copy_num_calls_long %>%
+  filter(sample_type == 'subject') %>% 
+  ggplot() +
+  geom_histogram(aes(quant, fill = cn_state),
+                 boundary = 0, binwidth = 0.10, size =0.5) +
+  geom_line(aes(x,y),
+            data = cn_density %>% 
+              group_by(marker, x) %>% 
+              summarise(y = sum(y)) %>% 
+              mutate(y = 60 * y / max(y))) +
+  xlab('Raw copy number') +
+  scale_fill_manual(values = pal, name = 'Assigned copy number') +
+  facet_wrap(~marker, nrow = 1) +
+  guides(fill=guide_legend(nrow=1, label.position = 'top', title.position = 'left')) + 
+  xlim(0.5, 4.5) +
+  ggtitle('Test population raw copy number distribution')
+
+```
