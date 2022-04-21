@@ -6,7 +6,7 @@ LABEL \
   maintainer="Bahlo Lab"
 
 # set the conda env name
-ARG NAME='PLASTER_v0.0'
+ARG NAME='PLASTER_v0.2'
 
 # Install the conda environment
 COPY inst/environment.yml /
