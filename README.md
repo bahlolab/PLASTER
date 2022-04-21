@@ -9,7 +9,8 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 
 ## Prerequisites
 
-* Make sure [Nextflow](https://nextflow.io/) and either [Singularity](https://sylabs.io/guides/3.0/user-guide/index.html) or [Docker](https://www.docker.com/) are installed on your system
+* [Nextflow](https://nextflow.io/) (version ≥ 20.07.1)
+* [Singularity](https://sylabs.io/guides/3.0/user-guide/index.html) or [Docker](https://www.docker.com/) 
 
 ## Usage
 
