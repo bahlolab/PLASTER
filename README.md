@@ -10,7 +10,8 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 ## Prerequisites
 
 * [Nextflow](https://nextflow.io/) (version ≥ 20.07.1)
-* [Singularity](https://sylabs.io/guides/3.0/user-guide/index.html) or [Docker](https://www.docker.com/) 
+* [Singularity](https://sylabs.io/guides/3.0/user-guide/index.html) or [Docker](https://www.docker.com/)
+* Job compute nodes require an internet connection to download data from PharmVar and Ensembl VEP
 
 ## Usage
 
