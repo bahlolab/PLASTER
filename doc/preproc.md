@@ -13,6 +13,7 @@
   ACACGCATGACACACT
   ...
   ```
+  **Note:** For single-sample mode, set `barcodes_fasta = null`
 * **`amplicons_json` (required)**  
   Path to a JSON file describing target amplicons with the following format:
   ```JSON
@@ -37,6 +38,8 @@
   ```
 * **`run_id` (optional, default: "preproc-run")**  
   Identifier used for naming output files.
+* **`sample` (optional, default: "sample")**  
+  Sample Identifier used when running in single-sample mode
 * **`ccs_min_passes` (optional, default: 3)**  
   Parameter passed to PacBio ccs as `--min-passes`.
 * **`ccs_min_acc` (optional, default: 0.99)**  
