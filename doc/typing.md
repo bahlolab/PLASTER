@@ -21,22 +21,24 @@
       "end": 42131503,
       "strand": "-",
       "fusion": "CYP2D7",
-      "pharmvar_gene": "CYP2D6",
-      "pharmvar_ver": "4.2.6.1",
-      "vep_feature":"ENST00000645361"
+      "pharmvar": {
+        "gene": "CYP2D6",
+        "ver": "5.1.14",
+        "ref": "GRCh38",
+        "transcript": "ENST00000645361"
+       }
     },
     "CYP2D7": {
       "chrom": "chr22",
       "start": 42137550,
       "end": 42145176,
-      "strand": "-",
+      "strand": "-"
     }
   }
   ```
   Note the following fields are optional:
     * `"fusion"` - enables fusion detection by specifying the name of a second amplicon to check for fusions with
-    * `"pharmvar_gene"`, `"pharmvar_ver"` - enables PharmVar star allele assignment
-    * `"vep_feature"` - used in PharmVar star allele assignment to filter for variants affecting a given Ensembl trasnscript use VEP annotation
+    * `"pharmvar"` - enables PharmVar star allele assignment
 * **`ploidy` (optional, default: 2)**  
   Expected ploidy (i.e., copy number) for all samples.
 * **`copy_num` (optional, default: null)**  

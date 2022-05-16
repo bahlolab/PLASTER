@@ -5,9 +5,12 @@
     "end": 42131503,
     "strand": "-",
     "fusion": "CYP2D7",
-    "pharmvar_gene": "CYP2D6",
-    "pharmvar_ver": "4.2.6.1",
-    "vep_feature":"ENST00000645361"
+    "pharmvar": {
+      "gene": "CYP2D6",
+      "ver": "5.1.14",
+      "ref": "GRCh38",
+      "transcript": "ENST00000645361"
+    }
   },
   "CYP2D7": {
     "chrom": "chr22",

@@ -59,8 +59,9 @@ ArrayList checkManiAmps(ArrayList amplicon_set, Path amplicons_json) {
             k, v -> [(k): v.subMap(['chrom', 'start', 'end', 'strand'])]
         } : null }
     pharmvar = amplicons
-        .findAll {k, v -> v.pharmvar_gene != null &  v.pharmvar_ver != null }
-        .collect { k, v -> [k, v] }
+        .findAll { k, v -> v.pharmvar }
+        .findAll { k, v -> v.pharmvar.keySet().containsAll(['gene', 'ver', 'ref', 'transcript']) }
+        .collect { k, v -> [k, v.pharmvar + [start: v.start, end: v.end]] }
 
     return [amps, fusion, pharmvar]
 }

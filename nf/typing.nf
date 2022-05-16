@@ -35,7 +35,6 @@ workflow typing {
     (amplicons, fusion, pharmvar) = checkManiAmps(manifest.collect{it.amplicon}.unique(), amplicons_json)
     copy_num = parseCopyNum(manifest, params.copy_num, params.ploidy)
     run_vep = params.vep_cache_ver != null & params.vep_assembly != null
-
     // run tasks
     ref = prep_ref(params.ref_fasta, 'fai')
 
