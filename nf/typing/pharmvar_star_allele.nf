@@ -6,17 +6,17 @@ process pharmvar_star_allele {
     tag { am }
 
     input:
-        tuple val(am), path(sm_vcf), path(pv_vcf), val(amplicon)
+        tuple val(am), path(sm_vcf), path(pv_vcf), val(pharmvar_meta)
 
 
     output:
         tuple val(am), path("${am}.allele_definition.csv"), path("${am}.sample_phase_alleles.csv")
 
     script:
-        json = JsonOutput.toJson(amplicon)
+        json = JsonOutput.toJson(pharmvar_meta)
         """
         pharmvar_star_allele.R $sm_vcf $pv_vcf \\
-            --amplicon '$json' \\
+            --pharmvar '$json' \\
             --out-pref $am
         """
 }

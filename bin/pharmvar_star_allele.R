@@ -15,19 +15,20 @@ Usage:
 Options:
   sample_vcf                  vcf(.gz) file with sample variants.
   pharmvar_vcf                vcf(.gz) file with PharmVar star allele variants.
-  --amplicon=<f>              Json file with data about amplicon.
+  --pharmvar=<f>              Json file with Pharmvar metadata.
   --out-pref=<f>              Output file prefix.
 "
 opts <- docopt(doc)
 
 ## parse options, check inputs
-amplicon <- fromJSON(opts$amplicon)
+pharmvar <- fromJSON(opts$pharmvar)
 stopifnot(file.exists(opts$pharmvar_vcf),
           file.exists(opts$sample_vcf),
-          is_scalar_character(amplicon$pharmvar_gene),
           is_scalar_character(opts$out_pref),
-          is_scalar_integer(amplicon$start),
-          is_scalar_integer(amplicon$end))
+          is_scalar_character(pharmvar$gene),
+          is_scalar_character(pharmvar$transcript),
+          is_scalar_integer(pharmvar$start),
+          is_scalar_integer(pharmvar$end))
 
 ## function definitions
 seq_open_vcf <- function(vcf_fn) {
@@ -57,7 +58,7 @@ get_var_info <- function(gds) {
            alt = str_to_upper(alt))
 }
 
-get_vep_info <- function(gds, amplicon, ann_tag = 'CSQ') {
+get_vep_info <- function(gds, pharmvar, ann_tag = 'CSQ') {
   
   vep_ann_names <- 
     header(gds)$INFO %>%
@@ -83,23 +84,7 @@ get_vep_info <- function(gds, amplicon, ann_tag = 'CSQ') {
     set_colnames(., str_to_lower(names(.)))  %>% 
     type_convert(., col_types = cols()) %>% 
     mutate(impact = ordered(impact, c('MODIFIER', 'LOW', 'MODERATE',  'HIGH'))) %>% 
-    (function(x) {
-      names(amplicon) %>% 
-        keep(~ str_starts(., 'vep_')) %>% 
-        str_remove('vep_') %>% 
-        intersect(colnames(x)) %>% 
-        (function(fields) {
-          if (length(fields)) {
-            fields %>% 
-              map(function(field) {
-                x[[field]] == amplicon[str_c('vep_', field)]
-              }) %>% 
-              accumulate('&') %>%
-              unlist() %>% 
-              { filter(x, .) } 
-          } else {
-            x
-          } }) }) %>% 
+    filter(feature == pharmvar$transcript) %>% 
     arrange(variant_id, desc(impact)) %>% 
     group_by(variant_id) %>% 
     slice(1) %>% 
@@ -134,9 +119,9 @@ pharmvar_gds <- seq_open_vcf(opts$pharmvar_vcf)
 pv_var_info <- 
   SeqArray::info(pharmvar_gds) %>% 
   as_tibble() %>% 
-  select(starts_with(str_c(amplicon$pharmvar_gene, '_'))) %>% 
+  select(starts_with(str_c(pharmvar$gene, '_'))) %>%
   mutate(variant_id = seq_len(n())) %>% 
-  pivot_longer(-variant_id, names_to = 'allele', names_prefix = str_c(amplicon$pharmvar_gene, '_')) %>% 
+  pivot_longer(-variant_id, names_to = 'allele', names_prefix = str_c(pharmvar$gene, '_')) %>%
   filter(value) %>% 
   select(-value) %>% 
   chop(allele) %>% 
@@ -144,7 +129,7 @@ pv_var_info <-
                select(-allele_index) %>% 
                mutate(vid = str_c(str_remove(chrom, 'chr'), '-', pos, '-', ref, '-', alt)),
              by = 'variant_id') %>% 
-  mutate(in_range = pos >= amplicon$start & pos <= amplicon$end) %T>% 
+  mutate(in_range = pos >= pharmvar$start & pos <= pharmvar$end) %T>% 
   with({
     if (sum(!in_range)) {
       message('Warning: ', sum(!in_range), '/', length(in_range), ' variants outside amplicon region')
@@ -184,7 +169,7 @@ pv_alleles <-
       left_join(ambig, 'allele')
   }) %>% 
   nest(data=-core_id) %>% 
-  mutate(`function` = get_pharmvar_func(amplicon$pharmvar_gene, core_id) %>% 
+  mutate(`function` = get_pharmvar_func(pharmvar$gene, core_id) %>% 
            ordered(c('no function', 'decreased function', 'normal function'))) %>% 
   unnest(data)
 
@@ -196,7 +181,7 @@ var_info <-
   with(assert_that(all(allele_index == 1L))) %>% 
   select(-allele_index) %>% 
   mutate(vid = str_c(str_remove(chrom, 'chr'), '-', pos, '-', ref, '-', alt)) %>% 
-  left_join(get_vep_info(sample_gds, amplicon) %>% 
+  left_join(get_vep_info(sample_gds, pharmvar) %>% 
               select(variant_id, symbol, gene, consequence, impact, feature, annot),
             by = "variant_id")
 

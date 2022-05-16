@@ -1,12 +1,11 @@
 
-
 process get_pharmvar_vcf {
-    label 'S'
+    label 'S4'
     publishDir "progress/get_pharmvar_vcf",  mode: params.intermediate_pub_mode
-    tag {"${meta.pharmvar_gene}:${meta.pharmvar_ver}"}
+    tag {"${pharmvar.ver}:${pharmvar.ref}:${pharmvar.gene}"}
 
     input:
-        tuple val(am), val(meta)
+        tuple val(am), val(pharmvar)
         tuple path(ref), path(fai), path(dict)
 
 
@@ -14,25 +13,25 @@ process get_pharmvar_vcf {
         tuple val(am), path(vcf), path("${vcf}.tbi")
 
     script:
-        gene = meta.pharmvar_gene
-        ver = meta.pharmvar_ver
-        url = "https://www.pharmvar.org/get-download-file?name=$gene&refSeq=ALL&fileType=zip&version=$ver"
-        vcf = "${am}.pharmvar-$gene-${ver}.vcf.gz"
+        url = "https://www.pharmvar.org/get-download-file?name=ALL&refSeq=ALL&fileType=zip&version=${pharmvar.ver}"
+        vcf = "${am}.${pharmvar.ver}_${pharmvar.ref}_${pharmvar.gene}.vcf.gz"
         """
         curl "$url" -o bundle.zip
-        unzip bundle.zip
-        for VCF in ./$gene-$ver/GRCh38/*.vcf
-        do
-            NAME=`basename \$VCF .vcf`
-            NORM=\$NAME.norm.bcf
-            ANN=\$NAME.ann.bcf
-            bcftools norm \$VCF -f $ref -Ob -o \$NORM
-            bcftools index \$NORM
-            bcftools annotate \$NORM -a \$NORM -m \$NAME -Ob -o \$ANN
-            bcftools index \$ANN
-            rm \$NORM*
-        done
-        bcftools merge -m none *.ann.bcf -Oz -o $vcf
+        unzip -l bundle.zip |
+            egrep -o pharmvar-.+/${pharmvar.gene}/${pharmvar.ref}/.+vcf\$ |
+            xargs -n1 -i bash -c '
+                NAME=\$(basename {} .vcf)
+                BCF=\$NAME.bcf
+                ANN=\$NAME.ann.bcf
+                unzip -p bundle.zip {} |
+                    sed "s:INFO\t\$:INFO:" |
+                    bcftools view -Ob -o \$BCF
+                bcftools index \$BCF
+                bcftools annotate \$BCF -a \$BCF -m \$NAME -Ob -o \$ANN
+                bcftools index \$ANN'
+        bcftools merge -m none *.ann.bcf -Ou |
+            bcftools norm -f $ref -Oz -o $vcf 
         bcftools index -t $vcf
+        rm *.bcf *.csi bundle.zip
         """
 }

@@ -1,4 +1,4 @@
-name: PLASTER_v0.0
+name: PLASTER_22.05.01
 channels:
     - conda-forge
     - bioconda
@@ -34,3 +34,4 @@ dependencies:
     - bioconductor-snprelate
     - bioconductor-genomicranges
     - bioconductor-shortread
+    - jq

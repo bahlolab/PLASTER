@@ -1,53 +1,61 @@
 
+include { path } from '../functions'
+
 workflow pb_lima {
     take:
-        data
+        data //rt, nr, bam
     main:
-        lima(data)
-        lima.out.smry |
-            toSortedList() |
-            map { [
-                (it.find { it[0] == 'CCS' })[2],
-                (it.find { it[0] == 'SR' })[2] ] } |
-            merge_smry
+        if (params.barcodes_fasta) {
+            barcodes_fasta = path(params.barcodes_fasta)
+            data | combine([barcodes_fasta]) | lima
+            lima.out.smry |
+                toSortedList() |
+                map {
+                    [(it.find { it[0] == 'CCS' })[2],
+                     (it.find { it[0] == 'SR' })[2]]
+                } |
+                merge_smry
+            bams = lima.out.bc |
+                mix(lima.out.not_bc) |
+                map { [it[0], it[1], it[2].toFile().text.trim() as int, it[3]] }
+                // rt, is_bc, nr, bam
+            smry = merge_smry.out
+        } else {
+            bams = data.map { [it[0], true, it[1], it[2]] } // rt, is_bc, nr, bam
+            smry = Channel.from(['not done.']) |
+                collectFile(seed: 'note', newLine:true, name: 'lima_smry.tsv')
+        }
 
     emit:
-        //  rt, is_bc, nr, bam
-        bams = lima.out.bc |
-            mix (lima.out.not_bc) |
-            map { it.take(2) + [it[2].toFile().text.trim() as int, it[3]] }
-        smry = merge_smry.out
-
+        bams = bams //  rt, is_bc, nr, bam
+        smry = smry
 }
 
 process lima {
-    label 'L'
+    label 'L_NR'
     publishDir "progress/pb_lima", mode: "$params.intermediate_pub_mode"
     tag { rt }
 
     input:
-        tuple path(bam), val(rt), path(bc_fasta)
+        tuple val(rt), val(nr), path(bam), path(bc_fasta)
 
     output:
-        tuple val(rt), val(true), file('nr_bc'), file(is_bc),  emit: bc
-        tuple val(rt), val(false), file('nr_nbc'), file(no_bc), file('nr_nbc'), emit: not_bc
+        tuple val(rt), val(true), file("${is_bc}.nr"), file(is_bc), emit: bc
+        tuple val(rt), val(false), file("${no_bc}.nr"), file(no_bc), emit: not_bc
         tuple val(rt), file("${pref}.lima.counts"), file(smry), emit: smry
 
     script:
         pref = "${params.run_id}.${rt}.lima"
-        out = "${pref}.bam"
+        is_bc = "${pref}.bam"
+        no_bc = "${pref}.removed.bam"
         smry = "${pref}.lima.summary"
-        is_bc = "${pref}.is_bc.bam"
-        no_bc = "${pref}.no_bc.bam"
         """
-        lima $bam $bc_fasta $out ${rt ==~ /^CCS$/ ? '--ccs' : ''} \\
+        lima $bam $bc_fasta $is_bc ${rt ==~ /^CCS$/ ? '--ccs' : ''} \\
             --same \\
             --num-threads $task.cpus \\
             --dump-removed
-        sed '2q;d' $smry | grep -oP '(?<=: )[0-9]+(?=.+\$)' > nr_bc
-        sed '3q;d' $smry | grep -oP '(?<=: )[0-9]+(?=.+\$)' > nr_nbc
-        mv $out $is_bc
-        mv ${pref}.removed.bam $no_bc
+        sed '2q;d' $smry | grep -oP '(?<=: )[0-9]+(?=.+\$)' > ${is_bc}.nr
+        sed '3q;d' $smry | grep -oP '(?<=: )[0-9]+(?=.+\$)' > ${no_bc}.nr
         """
 }
 
