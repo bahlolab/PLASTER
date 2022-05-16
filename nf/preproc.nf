@@ -34,26 +34,25 @@ workflow preproc {
     // check and load inputs
     subreads_bam = path(params.subreads_bam)
     subreads_pbi = path(params.subreads_bam + '.pbi')
-    barcodes_fasta = path(params.barcodes_fasta)
-    amplicons_json = checkAmps(params.amplicons_json)
-    rmd = path("${workflow.projectDir}/bin/preproc-report.Rmd")
+    if (params.barcodes_fasta) {
+        barcodes_fasta = path(params.barcodes_fasta)
+    }
 
+    amplicons_json = checkAmps(params.amplicons_json)
     // run tasks
     prep_ref(params.ref_fasta, 'mmi')
 
-    Channel.from([[subreads_bam, subreads_pbi]]) |
+    ccs_sr_ch = Channel.from([[subreads_bam, subreads_pbi]]) |
         pb_ccs |
-        map { [subreads_bam, it] } |
+        map { [subreads_bam, it[1]] } |
         extract_ccs_failed |
-        combine(['SR']) |
-        mix(pb_ccs.out | combine(['CCS'])) |
-        combine([barcodes_fasta]) |
+        map { ['SR', it[0].toFile().text.trim() as int, it[1]] } |
+        mix(pb_ccs.out.map { ['CCS'] + it }) |
         pb_lima
 
     pb_lima.out.bams |
         combine(prep_ref.out, by:0) |
         pb_mm2 |
-        combine([barcodes_fasta]) |
         annotate_samples |
         combine([amplicons_json]) |
         annotate_amplicons |
@@ -74,6 +73,6 @@ workflow preproc {
         toSortedList() |
         map { [it] } |
         combine(pb_lima.out.smry) |
-        map { [rmd, amplicons_json, barcodes_fasta] + it } |
+        combine([amplicons_json]) |
         pre_processing_report
 }

@@ -6,14 +6,13 @@ workflow pb_ccs {
         Channel.from((1..params.ccs_n_parallel) as ArrayList) |
             combine(subreads_channel) |
             ccs
-        ccs_bam = params.ccs_n_parallel == 1 ?
-            ccs.out.bams.map{ it[1] }.first() :
-            ccs.out.bams |
-                toSortedList() |
-                map { it.collect { it[1] } } |
-                merge
+        ccs_bam =  ccs.out.bams |
+            toSortedList() |
+            map { it.collect { it[1] } } |
+            merge |
+            map { [it[0].toFile().text.trim() as int, it[1]] }
     emit:
-        ccs_bam
+        ccs_bam // nr, bam
 }
 
 process ccs {
@@ -49,14 +48,15 @@ process merge {
     publishDir "progress/pb_merge", mode: "$params.intermediate_pub_mode"
 
     input:
-        path bams
+    path bams
 
     output:
-        path merged
+    tuple path("${pref}.nr"), path("${pref}.bam")
 
     script:
-        merged = params.run_id + '.ccs_merged.bam'
-        """
-        pbmerge ${bams.join(' ')} -o $merged --no-pbi
-        """
+    pref = params.run_id + '.ccs_merged'
+    """
+    pbmerge ${bams.join(' ')} -o ${pref}.bam
+    pbindexdump ${pref}.bam.pbi | jq .numReads > ${pref}.nr
+    """
 }

@@ -35,7 +35,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
     ref_fasta = 'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz'
   }
   ```
-  See [Pre-processing Parameters](doc/preproc.md) for more details.
+  See [Pre-processing Parameters](doc/preproc.md) for more details, including details on running in single-sample mode (no barcodes).
 * **Resuming a failed run**  
   Adding the `-resume` option to the Nextflow run command will use cached results from any pipeline steps where the inputs remain the same:
   ```
