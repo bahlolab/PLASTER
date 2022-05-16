@@ -104,7 +104,7 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 
 ### Pre-processing
 
-* **CCS** - [PacificBiosciences/ccs](https://github.com/PacificBiosciences/ccs)) implemented in [`pb_ccs.nf`](nf/preproc/pb_ccs.nf)
+* **CCS** - [PacificBiosciences/ccs](https://github.com/PacificBiosciences/ccs) implemented in [`pb_ccs.nf`](nf/preproc/pb_ccs.nf)
 * **Barcoding** - [PacificBiosciences/barcoding](https://github.com/PacificBiosciences/barcoding) implemented in [`pb_lima.nf`](nf/preproc/pb_lima.nf)
 * **Alignment** - [PacificBiosciences/pbmm2](https://github.com/PacificBiosciences/pbmm2) implemented in [`pb_mm2.nf`](nf/preproc/pb_mm2.nf)
 * **Trim** - Python script [`bam_annotate_amplicons.py`](bin/bam_annotate_samples.py) based on [pysam](https://github.com/pysam-developers/pysam)
