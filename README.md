@@ -126,3 +126,6 @@ The pipeline is built using [Nextflow](https://nextflow.io/), a workflow tool to
 
 ## Copy Number Analysis
 * The folder `CopyNumAnalysis` contains raw data and the analysis Rmarkdown document associated with the qPCR copy number analysis presented in the PLASTER manuscript.
+
+## Citation
+* [Charnaud, S., Munro, J.E., Semenec, L. et al. PacBio long-read amplicon sequencing enables scalable high-resolution population allele typing of the complex CYP2D6 locus. Commun Biol 5, 168 (2022)](https://doi.org/10.1038/s42003-022-03102-8)
